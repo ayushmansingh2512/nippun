@@ -11,12 +11,12 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: DATABASE_URL
-        value: postgresql://neondb_owner:npg_pe1M3bJkGoHd@ep-sparkling-sound-b48yohvp-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+        sync: false
       - key: CLOUDFLARE_GEMINI_PROXY_URL
         value: http://127.0.0.1:8787
       - key: INTERNAL_PROXY_SECRET
         value: a24-healthcare-internal-key-secret-2026
       - key: GEMINI_MODEL
-        value: gemini-1.5-flash
+        value: gemini-2.5-flash
       - key: CORS_ORIGINS
         value: "*"

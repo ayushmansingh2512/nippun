@@ -7,8 +7,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     
-    # Database (Neon PostgreSQL exclusively)
-    DATABASE_URL: str = "postgresql://neondb_owner:npg_pe1M3bJkGoHd@ep-sparkling-sound-b48yohvp-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    DATABASE_URL: str = ""
     
     # Cloudflare Proxy for Gemini Key Rotation
     CLOUDFLARE_GEMINI_PROXY_URL: str = "http://127.0.0.1:8787"
