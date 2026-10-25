@@ -28,7 +28,7 @@ export const AGENTS: HealthcareAgent[] = [
     specialty: 'Biomarker & Lab OCR',
     avatarType: 'clover',
     color: '#2563eb',
-    model: 'Gemini 2.5 Flash',
+    model: 'Gemini 3.5 Flash',
     capabilities: ['PDF Lab Extraction', 'Biomarker Flagging', 'Fever & Symptom Ingest'],
     glasses: 'round',
     hat: 'beanie',

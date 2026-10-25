@@ -188,17 +188,114 @@ async def chat_stream_endpoint(
                 full_reply_text = intro + doc_list_text + outro
                 yield format_sse("token", {"text": doc_list_text + outro})
 
-        # INTENT B: Exercise / Kinesiology (Square)
-        elif avatar_type == "square" or any(k in msg_lower for k in ["exercise", "workout", "kinesis", "rehab", "zone 2", "mobility"]):
-            yield format_sse("token", {"text": f"Synthesizing 7-day kinesiology schedule synced with {len(biomarkers)} laboratory biomarkers...\n\n"})
-            plan = await kinesiology_advisor_agent.generate_workout_plan(biomarkers=biomarkers)
+        # INTENT B: Exercise / Kinesiology (Square / Golu)
+        elif avatar_type == "square" or any(k in msg_lower for k in [
+            "exercise", "workout", "kinesis", "rehab", "zone 2", "mobility", "fat", "belly fat",
+            "weight", "gym", "cardio", "spine", "spinal", "lumbar", "squat", "running", "stretch", "stretching"
+        ]):
+            is_belly_fat_query = any(k in msg_lower for k in ["belly fat", "lose belly", "visceral fat", "stubborn fat", "fat loss", "weight loss"])
+            is_mobility_spine_query = any(k in msg_lower for k in ["spine", "spinal", "lumbar", "back pain", "lower back", "mobility", "stiff", "stretch", "tightness"])
 
-            yield format_sse("tool_result", {
-                "type": "workout_plan",
-                "plan": plan,
-            })
-            yield format_sse("token", {"text": f"**Prescription Objective**: {plan['focus_objective']}\n\nWeekly split updated in the Exercise tab with non-insulin mediated GLUT-4 glucose clearance sessions."})
-            full_reply_text = f"Prescription: {plan['focus_objective']}"
+            yield format_sse("token", {"text": f"GOLU // KINESIS formulating biomechanics & exercise prescription for {patient_name}...\n\n"})
+
+            # Sync workout plan tool result to console in background
+            try:
+                plan = await kinesiology_advisor_agent.generate_workout_plan(biomarkers=biomarkers)
+                yield format_sse("tool_result", {
+                    "type": "workout_plan",
+                    "plan": plan,
+                })
+            except Exception:
+                pass
+
+            system_instruction = (
+                f"You are GOLU (SQUARE), the Senior Kinesiology, Exercise Rehabilitation & Sports Medicine Coach for the A24 Healthcare Platform. "
+                f"The patient is {patient_name} in {user_location}. "
+                f"Their extracted lab biomarkers are: {json.dumps(biomarkers[:6]) if biomarkers else '[]'}. "
+                f"CLINICAL KINESIOLOGY & EXERCISE PRESCRIPTION DIRECTIVES: "
+                f"1. Accurately and specifically address the patient's EXACT question or goal (e.g. losing belly fat, relieving lumbar spine tightness, Zone 2 aerobic pacing, posture correction, or joint rehab). "
+                f"2. Explain the physiological science clearly (e.g. spot reduction is a myth; abdominal visceral fat reduction requires systematic caloric deficit paired with steady Zone 2 cardio for mitochondrial beta-oxidation and compound resistance training to preserve lean mass; lumbar spine tightness benefits from cat-cow, bird-dog, hip flexor mobility, and pelvic tilts). "
+                f"3. Provide an actionable step-by-step routine with exercises, sets, reps, duration, and heart rate targets. "
+                f"4. State form cues, joint safety precautions, and post-exercise recovery advice. "
+                f"FORMATTING STYLE: Format with clean, elegant markdown typography, bold section headers, and bullet points."
+            )
+
+            tokens_received = False
+            try:
+                async for token in gemini_client.stream_generate_content(
+                    prompt=f"Patient exercise & mobility query: {req.message}",
+                    system_instruction=system_instruction,
+                ):
+                    if token and "temporarily rate-limited" not in token and "exhausted" not in token:
+                        tokens_received = True
+                        full_reply_text += token
+                        yield format_sse("token", {"text": token})
+            except Exception:
+                tokens_received = False
+
+            if not tokens_received:
+                # Deterministic high-precision fallback tailored specifically to query
+                if is_belly_fat_query:
+                    response_body = (
+                        f"### 🏃 GOLU // Kinesiology Protocol: Targeted Visceral & Belly Fat Reduction\n\n"
+                        f"**Patient:** {patient_name} | **Specialty:** Metabolic Conditioning & Body Composition\n\n"
+                        f"#### 1. Biomechanical Reality: The Fat Loss Science\n"
+                        f"• **Spot Reduction Is a Myth:** Doing crunches will not burn belly fat directly. Fat is oxidized systemically across the whole body when you maintain a modest caloric deficit (300–500 kcal/day).\n"
+                        f"• **Metabolic Optimization:** To mobilize deep visceral abdominal fat, we pair **Zone 2 steady-state cardio** (which maximizes mitochondrial fatty acid oxidation) with **compound resistance training** (which preserves lean muscle and GLUT-4 glucose sinks).\n\n"
+                        f"#### 2. The Weekly Training Prescription:\n"
+                        f"• **Zone 2 Cardio (4 Sessions / Week, 35–45 Mins):**\n"
+                        f"  - **Protocol:** Incline treadmill walking (10–12% incline, 4.5 km/h) or outdoor brisk rucking.\n"
+                        f"  - **Heart Rate Target:** Keep heart rate strictly in Zone 2 (120–135 BPM). You should be able to hold a conversation without gasping.\n"
+                        f"  - **Why:** At this intensity, muscle cells derive up to 80% of energy from circulating fatty acids rather than pure glycogen.\n\n"
+                        f"• **Compound Strength Training (3 Sessions / Week, 40 Mins):**\n"
+                        f"  - **Exercises:** Goblet Squats (3 sets x 10 reps), Romanian Deadlifts (3 sets x 8 reps), Push-ups / Overhead Press (3 sets x 10 reps), Farmer's Carries (3 sets x 40 meters).\n"
+                        f"  - **Why:** High-volume muscle contraction triggers GLUT-4 translocation and boosts basal metabolic rate for up to 36 hours post-workout.\n\n"
+                        f"#### 3. Post-Prandial Blood Sugar Blunting:\n"
+                        f"• Walk for **10 to 15 minutes immediately after your two largest meals** (lunch & dinner). This clears glucose from the bloodstream into leg muscles without insulin spikes, preventing excess glucose from being converted to visceral fat.\n\n"
+                        f"#### 4. Safety & Recovery:\n"
+                        f"• Prioritize 7–8 hours of quality sleep to keep cortisol (stress hormone which promotes abdominal fat storage) baseline low.\n"
+                        f"• Hydrate with 3.0 liters of water daily."
+                    )
+                elif is_mobility_spine_query:
+                    response_body = (
+                        f"### 🧘 GOLU // Kinesiology Protocol: 10-Minute Lumbar Spine & Mobility Routine\n\n"
+                        f"**Patient:** {patient_name} | **Specialty:** Lumbo-Pelvic Decompression & Spinal Mobility\n\n"
+                        f"#### 1. Clinical Objective:\n"
+                        f"Lumbar spine tightness is usually secondary to tight hip flexors (psoas) from prolonged sitting and weak posterior chain endurance. This 10-minute flow restores thoracic mobility and decompresses lumbar vertebrae.\n\n"
+                        f"#### 2. The 10-Minute Decompression Flow:\n"
+                        f"1. **Cat-Cow Dynamic Spinal Mobilization (2 Minutes):**\n"
+                        f"   - Quadruped position on hands and knees. Inhale as you drop the belly and look up (Cow). Exhale as you tuck your pelvis and round your upper back (Cat).\n"
+                        f"   - *Repetitions:* 10 slow cycles synchronized with breathing.\n\n"
+                        f"2. **Bird-Dog Lumbo-Pelvic Stabilization (2 Minutes):**\n"
+                        f"   - Extend right arm forward and left leg straight back until parallel to floor. Hold for 3 seconds while bracing your core. Return and switch sides.\n"
+                        f"   - *Repetitions:* 8 reps per side (McGill Big 3 spine-sparing exercise).\n\n"
+                        f"3. **Half-Kneeling Hip Flexor / Psoas Stretch (2 Minutes):**\n"
+                        f"   - Kneel on left knee, right foot flat forward. Tuck pelvis under (posterior pelvic tilt) and gently squeeze left glute until you feel a deep stretch in the front of your left hip.\n"
+                        f"   - *Hold:* 45 seconds per side.\n\n"
+                        f"4. **Child's Pose with Lat Reach (2 Minutes):**\n"
+                        f"   - Sit hips back onto heels, reach arms out in front. Walk hands 45 degrees to the left to decompress right QL muscle, then walk to the right.\n"
+                        f"   - *Hold:* 1 minute per side.\n\n"
+                        f"5. **Glute Bridges with 3-Second Iso-Hold (2 Minutes):**\n"
+                        f"   - Lie on back, knees bent, drive through heels to elevate hips until thighs and torso align. Squeeze glutes at top to reciprocally inhibit tight hip flexors.\n"
+                        f"   - *Repetitions:* 12 reps.\n\n"
+                        f"#### 3. Precautions:\n"
+                        f"• Never push into sharp, radiating, or shooting nerve pain.\n"
+                        f"• Perform daily in the morning or post-workday."
+                    )
+                else:
+                    response_body = (
+                        f"### 🏋️ GOLU // Kinesiology & Movement Prescription\n\n"
+                        f"**Patient:** {patient_name} | **Focus:** Biomechanics & Metabolic Rehabilitation\n\n"
+                        f"Based on your query: *\"{req.message}\"*\n\n"
+                        f"#### 1. Movement Recommendations:\n"
+                        f"• **Aerobic Conditioning:** 30–40 minutes of Zone 2 steady-state movement (brisk walking, cycling, or light rowing) 3–4x weekly.\n"
+                        f"• **Resistance Training:** Full-body compound movement split focusing on squats, hinges, pushes, and pulls with proper pelvic bracing.\n"
+                        f"• **Active Recovery:** 10 minutes of daily mobility flow targeting thoracic spine, hips, and ankles.\n\n"
+                        f"Let me know if you would like me to customize this further for your specific fitness level or any joint sensitivities!"
+                    )
+
+                full_reply_text = response_body
+                yield format_sse("token", {"text": response_body})
 
         # INTENT C: Pharmacology / Medicine / Fever / Piles / Supplement Guidance (Flower)
         elif (

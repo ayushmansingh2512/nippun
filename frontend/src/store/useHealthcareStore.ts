@@ -66,6 +66,13 @@ interface HealthcareState {
   biomarkers: Biomarker[];
   diagnosedConditions: DiagnosedCondition[];
   reportSummary: string;
+  activeReportType: 'vitamin' | 'sample_blood' | 'custom' | 'none';
+  userExtractedReport: {
+    biomarkers: Biomarker[];
+    diagnosedConditions: DiagnosedCondition[];
+    reportSummary: string;
+    fileName?: string;
+  } | null;
   userLocation: string;
   doctors: Doctor[];
   bookedAppointments: any[];
@@ -88,6 +95,8 @@ interface HealthcareState {
   sendMessage: (text: string) => Promise<void>;
   uploadReportFile: (file: File) => Promise<void>;
   loadSampleReport: () => void;
+  loadVitaminReport: () => void;
+  loadUserExtractedReport: () => void;
   clearUserReport: () => Promise<void>;
   bookDoctorAppointment: (doctor: Doctor) => Promise<void>;
   scoutSpecialists: (specialty?: string, location?: string) => Promise<void>;
@@ -253,6 +262,8 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
   isStreaming: false,
   biomarkers: [],
   reportSummary: '',
+  activeReportType: 'none',
+  userExtractedReport: null,
   userLocation: 'Gorakhpur, Uttar Pradesh',
   diagnosedConditions: [],
   doctors: [
@@ -325,21 +336,28 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
     const user = get().currentUser;
     const username = user?.username;
 
-    // Fast-path: Check user-specific report cache in localStorage
-    if (username) {
-      const cached = localStorage.getItem(`user_report_${username}`);
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (parsed?.biomarkers) {
-            set({
-              biomarkers: parsed.biomarkers,
-              diagnosedConditions: parsed.diagnosed_conditions || [],
-              reportSummary: parsed.clinical_summary || 'Verified lab report on file.',
-            });
-          }
-        } catch {}
-      }
+    // Fast-path: Check user-specific or global report cache in localStorage
+    const localKey = username ? `user_report_${username}` : 'healthcare_last_extracted_report';
+    const cached = localStorage.getItem(localKey) || localStorage.getItem('healthcare_last_extracted_report');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (parsed?.biomarkers && parsed.biomarkers.length > 0) {
+          const reportObj = {
+            biomarkers: parsed.biomarkers,
+            diagnosedConditions: parsed.diagnosed_conditions || [],
+            reportSummary: parsed.clinical_summary || 'Verified lab report on file.',
+            fileName: parsed.source_file || parsed.file_name,
+          };
+          set({
+            biomarkers: reportObj.biomarkers,
+            diagnosedConditions: reportObj.diagnosedConditions,
+            reportSummary: reportObj.reportSummary,
+            activeReportType: 'custom',
+            userExtractedReport: reportObj,
+          });
+        }
+      } catch {}
     }
 
     try {
@@ -352,24 +370,25 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
         const data = await res.json();
         if (data.has_report && data.parsed_data) {
           const parsed = data.parsed_data;
-          if (parsed?.biomarkers) {
-            set({
+          if (parsed?.biomarkers && parsed.biomarkers.length > 0) {
+            const reportObj = {
               biomarkers: parsed.biomarkers,
               diagnosedConditions: parsed.diagnosed_conditions || [],
               reportSummary: parsed.clinical_summary || 'Report processed successfully.',
+              fileName: data.file_name || parsed.source_file,
+            };
+            set({
+              biomarkers: reportObj.biomarkers,
+              diagnosedConditions: reportObj.diagnosedConditions,
+              reportSummary: reportObj.reportSummary,
+              activeReportType: 'custom',
+              userExtractedReport: reportObj,
             });
             if (username) {
               localStorage.setItem(`user_report_${username}`, JSON.stringify(parsed));
             }
+            localStorage.setItem('healthcare_last_extracted_report', JSON.stringify({ ...parsed, file_name: data.file_name }));
           }
-        } else if (username && !data.has_report) {
-          // Logged-in user has NO report uploaded yet -> Clean state, remove any stale cached reports
-          localStorage.removeItem(`user_report_${username}`);
-          set({
-            biomarkers: [],
-            diagnosedConditions: [],
-            reportSummary: `Welcome, ${user?.fullName || username}. No clinical report has been uploaded for your profile yet. Upload your lab report PDF in Kittu (Triage) to populate your telemetry.`,
-          });
         }
       }
     } catch {}
@@ -383,11 +402,44 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
         await fetch(`${API_BASE}/reports/clear?username=${encodeURIComponent(user.username)}`, { method: 'POST' });
       } catch {}
     }
+    localStorage.removeItem('healthcare_last_extracted_report');
     set({
       biomarkers: [],
       diagnosedConditions: [],
       reportSummary: '',
+      activeReportType: 'none',
+      userExtractedReport: null,
     });
+  },
+
+  loadUserExtractedReport: () => {
+    let extracted = get().userExtractedReport;
+    if (!extracted) {
+      const username = get().currentUser?.username;
+      const cached = (username && localStorage.getItem(`user_report_${username}`)) || localStorage.getItem('healthcare_last_extracted_report');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed?.biomarkers) {
+            extracted = {
+              biomarkers: parsed.biomarkers,
+              diagnosedConditions: parsed.diagnosed_conditions || [],
+              reportSummary: parsed.clinical_summary || 'Verified lab report on file.',
+              fileName: parsed.source_file || parsed.file_name,
+            };
+          }
+        } catch {}
+      }
+    }
+    if (extracted) {
+      set({
+        biomarkers: extracted.biomarkers,
+        diagnosedConditions: extracted.diagnosedConditions,
+        reportSummary: extracted.reportSummary,
+        activeReportType: 'custom',
+        userExtractedReport: extracted,
+      });
+    }
   },
 
   setFocusedIndex: (idx) => {
@@ -460,6 +512,58 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
       biomarkers: sampleBiomarkers,
       diagnosedConditions: sampleConditions,
       reportSummary: 'Sample CBC & Metabolic Panel parsed successfully. Identified 5 biomarker anomalies requiring nutritional, pharmacology, and movement coordination.',
+      activeReportType: 'sample_blood',
+    });
+  },
+
+  loadVitaminReport: () => {
+    const vitaminBiomarkers: Biomarker[] = [
+      { name: 'Hemoglobin', value: '13.2', unit: 'g/dL', reference_range: '13.8 - 17.2', flag: 'LOW' },
+      { name: 'Vitamin D (25-OH)', value: '18.4', unit: 'ng/mL', reference_range: '30.0 - 100.0', flag: 'LOW' },
+      { name: 'Fasting Glucose', value: '104', unit: 'mg/dL', reference_range: '70 - 99', flag: 'HIGH' },
+      { name: 'Total Cholesterol', value: '218', unit: 'mg/dL', reference_range: '< 200', flag: 'HIGH' },
+      { name: 'LDL Cholesterol', value: '138', unit: 'mg/dL', reference_range: '< 100', flag: 'HIGH' },
+      { name: 'Thyroid TSH', value: '2.4', unit: 'uIU/mL', reference_range: '0.4 - 4.0', flag: 'NORMAL' },
+    ];
+    const vitaminConditions: DiagnosedCondition[] = [
+      {
+        condition: 'Impaired Fasting Glucose (Prediabetic Spectrum)',
+        severity: 'Moderate Risk',
+        biomarkers_implicated: ['Fasting Glucose: 104 mg/dL', 'HbA1c: 5.8%'],
+        needed_specialist: 'Endocrinologist & Diabetologist',
+        clinical_urgency: 'High Priority',
+        guidance: 'Fasting blood sugar elevated above 99 mg/dL. Requires metabolic evaluation, lifestyle glucose clearance protocol, and HbA1c surveillance to arrest progression to Type 2 Diabetes.',
+      },
+      {
+        condition: 'Severe Hypovitaminosis D (Vitamin D3 Deficiency)',
+        severity: 'Deficient',
+        biomarkers_implicated: ['Vitamin D (25-OH): 18.4 ng/mL'],
+        needed_specialist: 'Consultant Physician & Clinical Nutritionist',
+        clinical_urgency: 'High Priority',
+        guidance: 'Serum levels below 20 ng/mL impair bone density, immune function, and insulin receptor sensitivity. High-dose oral cholecalciferol (60,000 IU/week) indicated under clinical supervision.',
+      },
+      {
+        condition: 'Atherogenic Dyslipidemia & Elevated LDL',
+        severity: 'Elevated',
+        biomarkers_implicated: ['LDL: 138 mg/dL', 'Total Cholesterol: 218 mg/dL'],
+        needed_specialist: 'Cardio-Metabolic Specialist',
+        clinical_urgency: 'Moderate Priority',
+        guidance: 'High circulating low-density lipoprotein and elevated non-HDL cholesterol promote endothelial plaque formation. Dietary lipid modification and aerobic exercise indicated.',
+      },
+      {
+        condition: 'Mild Microcytic / Borderline Anemia',
+        severity: 'Mild',
+        biomarkers_implicated: ['Hemoglobin: 13.2 g/dL'],
+        needed_specialist: 'Consultant Physician & Hematologist',
+        clinical_urgency: 'Routine Evaluation',
+        guidance: 'Sub-optimal hemoglobin (13.2 g/dL) reflects mild microcytic depression. Recommend serum ferritin and iron binding capacity test.',
+      },
+    ];
+    set({
+      biomarkers: vitaminBiomarkers,
+      diagnosedConditions: vitaminConditions,
+      reportSummary: 'Executive blood test flags moderate hypovitaminosis D (18.4 ng/mL), impaired fasting glucose (104 mg/dL), and mild microcytic hemoglobin reduction.',
+      activeReportType: 'vitamin',
     });
   },
 
@@ -637,14 +741,23 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
         const data = await res.json();
         const parsed = data.parsed_data;
         if (parsed?.biomarkers) {
-          set({
+          const reportObj = {
             biomarkers: parsed.biomarkers,
             diagnosedConditions: parsed.diagnosed_conditions || get().diagnosedConditions,
             reportSummary: parsed.clinical_summary || 'Report processed successfully.',
+            fileName: file.name,
+          };
+          set({
+            biomarkers: reportObj.biomarkers,
+            diagnosedConditions: reportObj.diagnosedConditions,
+            reportSummary: reportObj.reportSummary,
+            activeReportType: 'custom',
+            userExtractedReport: reportObj,
           });
           if (user?.username) {
             localStorage.setItem(`user_report_${user.username}`, JSON.stringify(parsed));
           }
+          localStorage.setItem('healthcare_last_extracted_report', JSON.stringify({ ...parsed, file_name: file.name }));
         }
       }
     } catch {

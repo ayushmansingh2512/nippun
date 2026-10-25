@@ -59,7 +59,11 @@ export const AgentWorkspaceDrawer: React.FC<{
     reportSummary,
     uploadReportFile,
     loadSampleReport,
+    loadVitaminReport,
     clearUserReport,
+    activeReportType,
+    userExtractedReport,
+    loadUserExtractedReport,
     userLocation,
     setUserLocation,
     doctors,
@@ -119,6 +123,11 @@ export const AgentWorkspaceDrawer: React.FC<{
   const lipidMarker = biomarkers.find((b) => /cholesterol|ldl|lipid/i.test(b.name));
   const rbcMarker = biomarkers.find((b) => /hemoglobin|ferritin|iron/i.test(b.name));
   const thyroidMarker = biomarkers.find((b) => /tsh|thyroid/i.test(b.name));
+
+  // Determine if active view is the extended sample blood panel or the baseline vitamins panel
+  const isBloodPanel =
+    activeReportType === 'sample_blood' ||
+    biomarkers.some((b) => b.name === 'Serum Ferritin' || (b.name.includes('Vitamin D') && b.value === '16.9'));
 
   // Dynamically generate targeted pharmacological & supplement recommendations based on active lab telemetry
   const dynamicSupplements = [
@@ -501,19 +510,53 @@ export const AgentWorkspaceDrawer: React.FC<{
                       />
                     </label>
 
-                    <button
-                      onClick={loadSampleReport}
-                      className="subheading-xs"
-                      style={{
-                        padding: '0.55rem 1.25rem',
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #111',
-                        color: '#111',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      LOAD SAMPLE BLOOD PANEL
-                    </button>
+                    {userExtractedReport && activeReportType !== 'custom' && (
+                      <button
+                        onClick={loadUserExtractedReport}
+                        className="subheading-xs"
+                        style={{
+                          padding: '0.55rem 1.25rem',
+                          backgroundColor: '#eff6ff',
+                          border: '1.5px solid #2563eb',
+                          color: '#2563eb',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                        title="Return to your uploaded and parsed clinical lab report"
+                      >
+                        MY EXTRACTED REPORT
+                      </button>
+                    )}
+
+                    {isBloodPanel ? (
+                      <button
+                        onClick={loadVitaminReport}
+                        className="subheading-xs"
+                        style={{
+                          padding: '0.55rem 1.25rem',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #111',
+                          color: '#111',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        BACK TO VITAMIN & MORE
+                      </button>
+                    ) : (
+                      <button
+                        onClick={loadSampleReport}
+                        className="subheading-xs"
+                        style={{
+                          padding: '0.55rem 1.25rem',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #111',
+                          color: '#111',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        LOAD SAMPLE BLOOD PANEL
+                      </button>
+                    )}
 
                     {biomarkers.length > 0 && (
                       <button
@@ -570,28 +613,56 @@ export const AgentWorkspaceDrawer: React.FC<{
                       <p className="paragraph-m" style={{ color: '#666', marginBottom: '1.25rem', maxWidth: '32rem', margin: '0 auto 1.25rem auto' }}>
                         No medical lab report has been uploaded for this account yet. Upload your clinical diagnostic PDF above to populate your personal biomarker matrix.
                       </p>
-                      <label
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          padding: '0.55rem 1.25rem',
-                          backgroundColor: '#111',
-                          color: '#fff',
-                          cursor: 'pointer',
-                          fontWeight: 700,
-                          fontSize: '0.75rem',
-                        }}
-                      >
-                        <Upload size={14} />
-                        <span>SELECT MEDICAL LAB PDF</span>
-                        <input
-                          type="file"
-                          accept=".pdf,.png,.jpg,.jpeg,.txt"
-                          onChange={handleFileUpload}
-                          style={{ display: 'none' }}
-                        />
-                      </label>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <label
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.55rem 1.25rem',
+                            backgroundColor: '#111',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                            fontSize: '0.75rem',
+                          }}
+                        >
+                          <Upload size={14} />
+                          <span>SELECT MEDICAL LAB PDF</span>
+                          <input
+                            type="file"
+                            accept=".pdf,.png,.jpg,.jpeg,.txt"
+                            onChange={handleFileUpload}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+                        <button
+                          onClick={loadVitaminReport}
+                          className="subheading-xs"
+                          style={{
+                            padding: '0.55rem 1.25rem',
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #111',
+                            color: '#111',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          LOAD VITAMIN PANEL
+                        </button>
+                        <button
+                          onClick={loadSampleReport}
+                          className="subheading-xs"
+                          style={{
+                            padding: '0.55rem 1.25rem',
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #111',
+                            color: '#111',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          LOAD SAMPLE BLOOD PANEL
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div style={{ border: '1px solid #111', backgroundColor: '#fff' }}>
