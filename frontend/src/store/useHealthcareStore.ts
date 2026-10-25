@@ -144,6 +144,8 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
       };
       localStorage.setItem('healthcare_auth_user', JSON.stringify(user));
       set({ currentUser: user, authModalOpen: false, authLoading: false, authError: null });
+      // Immediately fetch only this logged-in user's medical report
+      get().fetchLatestReport();
       return true;
     } catch (err: any) {
       set({ authLoading: false, authError: err.message || 'Login failed' });
@@ -176,6 +178,8 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
       };
       localStorage.setItem('healthcare_auth_user', JSON.stringify(user));
       set({ currentUser: user, authModalOpen: false, authLoading: false, authError: null });
+      // Immediately fetch only this logged-in user's medical report
+      get().fetchLatestReport();
       return true;
     } catch (err: any) {
       set({ authLoading: false, authError: err.message || 'Signup failed' });
@@ -185,7 +189,15 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
 
   logout: () => {
     localStorage.removeItem('healthcare_auth_user');
-    set({ currentUser: null, authModalOpen: false, authError: null });
+    set({
+      currentUser: null,
+      authModalOpen: false,
+      authError: null,
+      biomarkers: [],
+      diagnosedConditions: [],
+      reportSummary: 'Please log in to your patient portal to view your private medical telemetry.',
+    });
+    get().fetchLatestReport();
   },
 
   focusedIndex: 0,
@@ -349,17 +361,56 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
   setUserLocation: (location: string) => set({ userLocation: location }),
 
   fetchLatestReport: async () => {
+    const user = get().currentUser;
+    const username = user?.username;
+
+    // Fast-path: Check user-specific report cache in localStorage
+    if (username) {
+      const cached = localStorage.getItem(`user_report_${username}`);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed?.biomarkers) {
+            set({
+              biomarkers: parsed.biomarkers,
+              diagnosedConditions: parsed.diagnosed_conditions || [],
+              reportSummary: parsed.clinical_summary || 'Verified lab report on file.',
+            });
+          }
+        } catch {}
+      }
+    }
+
     try {
-      const res = await fetch(`${API_BASE}/reports/latest`);
+      const url = username
+        ? `${API_BASE}/reports/latest?username=${encodeURIComponent(username)}`
+        : `${API_BASE}/reports/latest`;
+
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        const parsed = data.parsed_data;
-        if (parsed?.biomarkers) {
-          set({
-            biomarkers: parsed.biomarkers,
-            diagnosedConditions: parsed.diagnosed_conditions || get().diagnosedConditions,
-            reportSummary: parsed.clinical_summary || get().reportSummary,
-          });
+        if (data.has_report && data.parsed_data) {
+          const parsed = data.parsed_data;
+          if (parsed?.biomarkers) {
+            set({
+              biomarkers: parsed.biomarkers,
+              diagnosedConditions: parsed.diagnosed_conditions || [],
+              reportSummary: parsed.clinical_summary || 'Report processed successfully.',
+            });
+            if (username) {
+              localStorage.setItem(`user_report_${username}`, JSON.stringify(parsed));
+            }
+          }
+        } else if (username && !data.has_report) {
+          // Logged-in user has NO report uploaded yet -> Do NOT leak other patients' reports!
+          const cached = localStorage.getItem(`user_report_${username}`);
+          if (!cached) {
+            set({
+              biomarkers: [],
+              diagnosedConditions: [],
+              reportSummary: `Welcome, ${user.fullName || username}. No clinical report has been uploaded for your profile yet. Upload your lab report PDF in Kittu (Triage) to populate your telemetry.`,
+            });
+          }
         }
       }
     } catch {}
@@ -598,6 +649,10 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
     set((s) => ({ agentStates: { ...s.agentStates, triage: 'working' } }));
     const formData = new FormData();
     formData.append('file', file);
+    const user = get().currentUser;
+    if (user?.username) {
+      formData.append('username', user.username);
+    }
 
     try {
       const res = await fetch(`${API_BASE}/reports/upload`, {
@@ -613,6 +668,9 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
             diagnosedConditions: parsed.diagnosed_conditions || get().diagnosedConditions,
             reportSummary: parsed.clinical_summary || 'Report processed successfully.',
           });
+          if (user?.username) {
+            localStorage.setItem(`user_report_${user.username}`, JSON.stringify(parsed));
+          }
         }
       }
     } catch {

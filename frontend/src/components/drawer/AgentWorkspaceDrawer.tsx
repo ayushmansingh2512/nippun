@@ -543,52 +543,85 @@ export const AgentWorkspaceDrawer: React.FC<{
                     </span>
                   </div>
 
-                  <div style={{ border: '1px solid #111', backgroundColor: '#fff' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid #111', backgroundColor: '#f2eee9' }}>
-                          <th className="subheading-xs" style={{ padding: '0.75rem 1rem' }}>BIOMARKER</th>
-                          <th className="subheading-xs" style={{ padding: '0.75rem 1rem' }}>VALUE</th>
-                          <th className="subheading-xs" style={{ padding: '0.75rem 1rem' }}>REFERENCE RANGE</th>
-                          <th className="subheading-xs" style={{ padding: '0.75rem 1rem' }}>STATUS</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {biomarkers.map((b) => (
-                          <tr key={b.name} style={{ borderBottom: '0.5px solid #eee' }}>
-                            <td className="paragraph-m" style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>
-                              {b.name}
-                            </td>
-                            <td className="paragraph-m" style={{ padding: '0.75rem 1rem' }}>
-                              {b.value} <span style={{ color: '#888', fontSize: '0.72rem' }}>{b.unit}</span>
-                            </td>
-                            <td className="paragraph-s" style={{ padding: '0.75rem 1rem', color: '#666' }}>
-                              {b.reference_range} {b.unit}
-                            </td>
-                            <td style={{ padding: '0.75rem 1rem' }}>
-                              <span
-                                className="subheading-xs"
-                                style={{
-                                  padding: '0.2rem 0.55rem',
-                                  border: '1px solid #111',
-                                  backgroundColor:
-                                    b.flag === 'LOW'
-                                      ? '#fed7aa'
-                                      : b.flag === 'HIGH'
-                                        ? '#fecaca'
-                                        : '#bbf7d0',
-                                  color: '#111',
-                                  fontSize: '0.65rem',
-                                }}
-                              >
-                                {b.flag}
-                              </span>
-                            </td>
+                  {biomarkers.length === 0 ? (
+                    <div style={{ border: '1px solid #111', backgroundColor: '#fff', padding: '2rem 1.5rem', textAlign: 'center' }}>
+                      <p className="subheading-xs" style={{ color: '#2563eb', marginBottom: '0.45rem' }}>
+                        NO BIOMARKERS ON FILE FOR {currentUser ? currentUser.fullName.toUpperCase() : 'PATIENT'}
+                      </p>
+                      <p className="paragraph-m" style={{ color: '#666', marginBottom: '1.25rem', maxWidth: '32rem', margin: '0 auto 1.25rem auto' }}>
+                        No medical lab report has been uploaded for this account yet. Upload your clinical diagnostic PDF above to populate your personal biomarker matrix.
+                      </p>
+                      <label
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.55rem 1.25rem',
+                          backgroundColor: '#111',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                        }}
+                      >
+                        <Upload size={14} />
+                        <span>SELECT MEDICAL LAB PDF</span>
+                        <input
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg,.txt"
+                          onChange={handleFileUpload}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <div style={{ border: '1px solid #111', backgroundColor: '#fff' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #111', backgroundColor: '#f2eee9' }}>
+                            <th className="subheading-xs" style={{ padding: '0.75rem 1rem' }}>BIOMARKER</th>
+                            <th className="subheading-xs" style={{ padding: '0.75rem 1rem' }}>VALUE</th>
+                            <th className="subheading-xs" style={{ padding: '0.75rem 1rem' }}>REFERENCE RANGE</th>
+                            <th className="subheading-xs" style={{ padding: '0.75rem 1rem' }}>STATUS</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {biomarkers.map((b) => (
+                            <tr key={b.name} style={{ borderBottom: '0.5px solid #eee' }}>
+                              <td className="paragraph-m" style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>
+                                {b.name}
+                              </td>
+                              <td className="paragraph-m" style={{ padding: '0.75rem 1rem' }}>
+                                {b.value} <span style={{ color: '#888', fontSize: '0.72rem' }}>{b.unit}</span>
+                              </td>
+                              <td className="paragraph-s" style={{ padding: '0.75rem 1rem', color: '#666' }}>
+                                {b.reference_range} {b.unit}
+                              </td>
+                              <td style={{ padding: '0.75rem 1rem' }}>
+                                <span
+                                  className="subheading-xs"
+                                  style={{
+                                    padding: '0.2rem 0.55rem',
+                                    border: '1px solid #111',
+                                    backgroundColor:
+                                      b.flag === 'LOW'
+                                        ? '#fed7aa'
+                                        : b.flag === 'HIGH'
+                                          ? '#fecaca'
+                                          : '#bbf7d0',
+                                    color: '#111',
+                                    fontSize: '0.65rem',
+                                  }}
+                                >
+                                  {b.flag}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
