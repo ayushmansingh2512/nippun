@@ -390,18 +390,18 @@ export const A24HealthcareStage: React.FC = () => {
                 ? 1.05
                 : 1.35
               : drawerOpen
-              ? 0.62
-              : Math.max(0.55, 0.85 - Math.abs(offset) * 0.15);
+                ? 0.62
+                : Math.max(0.55, 0.85 - Math.abs(offset) * 0.15);
             // Inactive agents on left and right have clean separation and never bunch up
             const opacity = drawerOpen
               ? isCurrent
                 ? 1
                 : Math.abs(offset) === 1
-                ? 0.55
-                : 0
+                  ? 0.55
+                  : 0
               : Math.abs(offset) > 2
-              ? 0
-              : 1;
+                ? 0
+                : 1;
 
             return (
               <div
@@ -477,234 +477,135 @@ export const A24HealthcareStage: React.FC = () => {
                         currentState === 'working'
                           ? '#2563eb'
                           : currentState === 'sleeping'
-                          ? '#6b7280'
-                          : '#059669',
+                            ? '#6b7280'
+                            : '#059669',
                     }}
                   >
                     {currentState === 'working'
                       ? '⚡ ACTIVE WORK'
                       : currentState === 'sleeping'
-                      ? '💤 SLEEPING (IDLE)'
-                      : '👁️ AWAKE & LISTENING'}
+                        ? '💤 SLEEPING (IDLE)'
+                        : '👁️ AWAKE & LISTENING'}
                   </span>
 
-                  {/* Dedicated Mouse Arrow Keys Directly Below Agent */}
-                  {isCurrent && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        marginTop: '0.85rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                        backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                        backdropFilter: 'blur(8px)',
-                        border: '1.5px solid #111',
-                        padding: '0.45rem 0.75rem',
-                        boxShadow: '3px 3px 0px rgba(0,0,0,0.2)',
-                        pointerEvents: 'auto',
-                        cursor: 'default',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {/* Left Arrow Button for Mouse */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFocusedIndex((focusedIndex - 1 + AGENTS.length) % AGENTS.length);
-                          }}
-                          className="subheading-xs"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            padding: '0.4rem 0.75rem',
-                            backgroundColor: '#ffffff',
-                            border: '1px solid #111',
-                            cursor: 'pointer',
-                            fontWeight: 800,
-                            fontSize: '0.75rem',
-                            color: '#111',
-                            transition: 'all 0.15s ease',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#111';
-                            e.currentTarget.style.color = '#fff';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#fff';
-                            e.currentTarget.style.color = '#111';
-                          }}
-                          title="Click to move to Previous Specialist (or use Left Arrow Key)"
-                          aria-label="Previous Specialist"
-                        >
-                          <span style={{ fontSize: '0.95rem', lineHeight: 1 }}>◀</span>
-                          <span>PREV</span>
-                        </button>
-
-                        {/* Interactive Agent Dots */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0 0.25rem' }}>
-                          {AGENTS.map((ag, i) => (
-                            <button
-                              key={ag.id}
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setFocusedIndex(i);
-                              }}
-                              style={{
-                                width: i === focusedIndex ? 22 : 9,
-                                height: 9,
-                                borderRadius: 5,
-                                backgroundColor: i === focusedIndex ? ag.color : '#cbd5e1',
-                                border: i === focusedIndex ? '1px solid #111' : '1px solid transparent',
-                                padding: 0,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                              }}
-                              title={`Switch to ${ag.name}`}
-                              aria-label={ag.name}
-                            />
-                          ))}
-                        </div>
-
-                        {/* Right Arrow Button for Mouse */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFocusedIndex((focusedIndex + 1) % AGENTS.length);
-                          }}
-                          className="subheading-xs"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            padding: '0.4rem 0.75rem',
-                            backgroundColor: '#ffffff',
-                            border: '1px solid #111',
-                            cursor: 'pointer',
-                            fontWeight: 800,
-                            fontSize: '0.75rem',
-                            color: '#111',
-                            transition: 'all 0.15s ease',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#111';
-                            e.currentTarget.style.color = '#fff';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#fff';
-                            e.currentTarget.style.color = '#111';
-                          }}
-                          title="Click to move to Next Specialist (or use Right Arrow Key)"
-                          aria-label="Next Specialist"
-                        >
-                          <span>NEXT</span>
-                          <span style={{ fontSize: '0.95rem', lineHeight: 1 }}>▶</span>
-                        </button>
-                      </div>
-
-                      <span
-                        className="subheading-xs"
-                        style={{
-                          fontSize: '0.58rem',
-                          opacity: 0.7,
-                          letterSpacing: '0.05em',
-                        }}
-                      >
-                        CLICK ARROWS OR PRESS [ ← ] [ → ]
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Large Stage Floating Arrow Buttons for Mouse */}
-        <button
-          type="button"
-          onClick={() => setFocusedIndex((focusedIndex - 1 + AGENTS.length) % AGENTS.length)}
-          className="subheading-xs"
+        {/* Two Static Circle Arrow Buttons: Always perfectly centered below agent, never disappear */}
+        <div
           style={{
             position: 'absolute',
-            left: drawerOpen ? '1rem' : '2.5rem',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            zIndex: 35,
-            width: 48,
-            height: 48,
+            top: 'calc(50% + 185px)',
+            left: 0,
+            right: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: '#ffffff',
-            border: '2px solid #111',
-            boxShadow: '3px 3px 0px #111',
-            cursor: 'pointer',
-            fontSize: '1.25rem',
-            fontWeight: 800,
-            transition: 'all 0.15s ease',
-            color: '#111',
+            gap: '1.25rem',
+            zIndex: 40,
+            pointerEvents: 'none',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#111';
-            e.currentTarget.style.color = '#fff';
-            e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#fff';
-            e.currentTarget.style.color = '#111';
-            e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-          }}
-          title="Previous Specialist [Left Arrow Key / Mouse Click]"
-          aria-label="Previous Specialist"
         >
-          ◀
-        </button>
+          {/* Previous Specialist Circle Arrow */}
+          <button
+            type="button"
+            onClick={() => setFocusedIndex((focusedIndex - 1 + AGENTS.length) % AGENTS.length)}
+            style={{
+              width: 46,
+              height: 46,
+              borderRadius: '50%',
+              backgroundColor: '#111111',
+              color: '#ffffff',
+              border: '1.5px solid #111111',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.22)',
+              transition: 'all 0.15s ease',
+              padding: 0,
+              pointerEvents: 'auto',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#ffffff';
+              e.currentTarget.style.color = '#111111';
+              e.currentTarget.style.transform = 'scale(1.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#111111';
+              e.currentTarget.style.color = '#ffffff';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+            title="Previous Specialist [Left Arrow]"
+            aria-label="Previous Specialist"
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{
+                fontSize: '24px',
+                lineHeight: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                userSelect: 'none',
+              }}
+            >
+              arrow_back
+            </span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setFocusedIndex((focusedIndex + 1) % AGENTS.length)}
-          className="subheading-xs"
-          style={{
-            position: 'absolute',
-            right: drawerOpen ? 'calc(56vw + 1rem)' : '2.5rem',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            zIndex: 35,
-            width: 48,
-            height: 48,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#ffffff',
-            border: '2px solid #111',
-            boxShadow: '3px 3px 0px #111',
-            cursor: 'pointer',
-            fontSize: '1.25rem',
-            fontWeight: 800,
-            transition: 'all 0.15s ease',
-            color: '#111',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#111';
-            e.currentTarget.style.color = '#fff';
-            e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#fff';
-            e.currentTarget.style.color = '#111';
-            e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-          }}
-          title="Next Specialist [Right Arrow Key / Mouse Click]"
-          aria-label="Next Specialist"
-        >
-          ▶
-        </button>
+          {/* Next Specialist Circle Arrow */}
+          <button
+            type="button"
+            onClick={() => setFocusedIndex((focusedIndex + 1) % AGENTS.length)}
+            style={{
+              width: 46,
+              height: 46,
+              borderRadius: '50%',
+              backgroundColor: '#111111',
+              color: '#ffffff',
+              border: '1.5px solid #111111',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.22)',
+              transition: 'all 0.15s ease',
+              padding: 0,
+              pointerEvents: 'auto',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#ffffff';
+              e.currentTarget.style.color = '#111111';
+              e.currentTarget.style.transform = 'scale(1.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#111111';
+              e.currentTarget.style.color = '#ffffff';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+            title="Next Specialist [Right Arrow]"
+            aria-label="Next Specialist"
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{
+                fontSize: '24px',
+                lineHeight: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                userSelect: 'none',
+                transform: 'rotate(180deg)',
+              }}
+            >
+              arrow_back
+            </span>
+          </button>
+        </div>
 
         {/* Floating Quick Dock for Switching Agents when Drawer is Open */}
         {drawerOpen && (
