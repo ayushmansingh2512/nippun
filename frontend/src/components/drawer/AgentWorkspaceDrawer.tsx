@@ -59,6 +59,7 @@ export const AgentWorkspaceDrawer: React.FC<{
     reportSummary,
     uploadReportFile,
     loadSampleReport,
+    clearUserReport,
     userLocation,
     setUserLocation,
     doctors,
@@ -513,19 +514,37 @@ export const AgentWorkspaceDrawer: React.FC<{
                     >
                       LOAD SAMPLE BLOOD PANEL
                     </button>
+
+                    {biomarkers.length > 0 && (
+                      <button
+                        onClick={clearUserReport}
+                        className="subheading-xs"
+                        style={{
+                          padding: '0.55rem 1rem',
+                          backgroundColor: '#fff1f2',
+                          border: '1px solid #e11d48',
+                          color: '#e11d48',
+                          cursor: 'pointer',
+                        }}
+                        title="Clear report data for this profile"
+                      >
+                        RESET / CLEAR
+                      </button>
+                    )}
                   </div>
                 </div>
 
-
                 {/* Synthesis Card */}
-                <div style={{ border: '1px solid #111', padding: '1.25rem', backgroundColor: '#fff' }}>
-                  <span className="subheading-xs" style={{ color: '#2563eb' }}>
-                    CLINICAL SYNTHESIS // VERIFIED RECORD
-                  </span>
-                  <p className="paragraph-regular" style={{ marginTop: '0.45rem', fontSize: '0.92rem' }}>
-                    {reportSummary}
-                  </p>
-                </div>
+                {reportSummary && (
+                  <div style={{ border: '1px solid #111', padding: '1.25rem', backgroundColor: '#fff' }}>
+                    <span className="subheading-xs" style={{ color: '#2563eb' }}>
+                      CLINICAL SYNTHESIS // VERIFIED RECORD
+                    </span>
+                    <p className="paragraph-regular" style={{ marginTop: '0.45rem', fontSize: '0.92rem' }}>
+                      {reportSummary}
+                    </p>
+                  </div>
+                )}
 
                 {/* Biomarkers Matrix */}
                 <div>

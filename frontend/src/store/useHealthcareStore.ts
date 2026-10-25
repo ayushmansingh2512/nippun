@@ -88,6 +88,7 @@ interface HealthcareState {
   sendMessage: (text: string) => Promise<void>;
   uploadReportFile: (file: File) => Promise<void>;
   loadSampleReport: () => void;
+  clearUserReport: () => Promise<void>;
   bookDoctorAppointment: (doctor: Doctor) => Promise<void>;
   scoutSpecialists: (specialty?: string, location?: string) => Promise<void>;
 }
@@ -250,50 +251,10 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
     ],
   },
   isStreaming: false,
-  biomarkers: [
-    { name: 'Hemoglobin', value: '13.2', unit: 'g/dL', reference_range: '13.8 - 17.2', flag: 'LOW' },
-    { name: 'Vitamin D (25-OH)', value: '18.4', unit: 'ng/mL', reference_range: '30.0 - 100.0', flag: 'LOW' },
-    { name: 'Fasting Glucose', value: '104', unit: 'mg/dL', reference_range: '70 - 99', flag: 'HIGH' },
-    { name: 'Total Cholesterol', value: '218', unit: 'mg/dL', reference_range: '< 200', flag: 'HIGH' },
-    { name: 'LDL Cholesterol', value: '138', unit: 'mg/dL', reference_range: '< 100', flag: 'HIGH' },
-    { name: 'Thyroid TSH', value: '2.4', unit: 'uIU/mL', reference_range: '0.4 - 4.0', flag: 'NORMAL' },
-  ],
-  reportSummary: 'Executive blood test flags moderate hypovitaminosis D (18.4 ng/mL), impaired fasting glucose (104 mg/dL), and mild microcytic hemoglobin reduction.',
+  biomarkers: [],
+  reportSummary: '',
   userLocation: 'Gorakhpur, Uttar Pradesh',
-  diagnosedConditions: [
-    {
-      condition: 'Impaired Fasting Glucose (Prediabetic Spectrum)',
-      severity: 'Moderate Risk',
-      biomarkers_implicated: ['Fasting Glucose: 104 mg/dL', 'HbA1c: 5.8%'],
-      needed_specialist: 'Endocrinologist & Diabetologist',
-      clinical_urgency: 'High Priority',
-      guidance: 'Fasting blood sugar elevated above 99 mg/dL. Requires metabolic evaluation, lifestyle glucose clearance protocol, and HbA1c surveillance to arrest progression to Type 2 Diabetes.',
-    },
-    {
-      condition: 'Severe Hypovitaminosis D (Vitamin D3 Deficiency)',
-      severity: 'Deficient',
-      biomarkers_implicated: ['Vitamin D (25-OH): 18.4 ng/mL'],
-      needed_specialist: 'Consultant Physician & Clinical Nutritionist',
-      clinical_urgency: 'High Priority',
-      guidance: 'Serum levels below 20 ng/mL impair bone density, immune function, and insulin receptor sensitivity. High-dose oral cholecalciferol (60,000 IU/week) indicated under clinical supervision.',
-    },
-    {
-      condition: 'Atherogenic Dyslipidemia & Elevated LDL',
-      severity: 'Elevated',
-      biomarkers_implicated: ['LDL: 135 mg/dL', 'Total Cholesterol: 218 mg/dL', 'Triglycerides: 165 mg/dL'],
-      needed_specialist: 'Cardio-Metabolic Specialist',
-      clinical_urgency: 'Moderate Priority',
-      guidance: 'High circulating low-density lipoprotein and elevated non-HDL cholesterol promote endothelial plaque formation. Dietary lipid modification and aerobic exercise indicated.',
-    },
-    {
-      condition: 'Mild Microcytic / Borderline Anemia',
-      severity: 'Mild',
-      biomarkers_implicated: ['Hemoglobin: 13.2 g/dL', 'Hematocrit: 39.5%'],
-      needed_specialist: 'Consultant Physician & Hematologist',
-      clinical_urgency: 'Routine Evaluation',
-      guidance: 'Sub-optimal hemoglobin (13.2 g/dL) and hematocrit reflect mild microcytic depression. Recommend serum ferritin and iron binding capacity test.',
-    },
-  ],
+  diagnosedConditions: [],
   doctors: [
     {
       doctor_name: 'Dr. Abhishek Singh, MD, DM',
@@ -402,18 +363,31 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
             }
           }
         } else if (username && !data.has_report) {
-          // Logged-in user has NO report uploaded yet -> Do NOT leak other patients' reports!
-          const cached = localStorage.getItem(`user_report_${username}`);
-          if (!cached) {
-            set({
-              biomarkers: [],
-              diagnosedConditions: [],
-              reportSummary: `Welcome, ${user.fullName || username}. No clinical report has been uploaded for your profile yet. Upload your lab report PDF in Kittu (Triage) to populate your telemetry.`,
-            });
-          }
+          // Logged-in user has NO report uploaded yet -> Clean state, remove any stale cached reports
+          localStorage.removeItem(`user_report_${username}`);
+          set({
+            biomarkers: [],
+            diagnosedConditions: [],
+            reportSummary: `Welcome, ${user?.fullName || username}. No clinical report has been uploaded for your profile yet. Upload your lab report PDF in Kittu (Triage) to populate your telemetry.`,
+          });
         }
       }
     } catch {}
+  },
+
+  clearUserReport: async () => {
+    const user = get().currentUser;
+    if (user?.username) {
+      localStorage.removeItem(`user_report_${user.username}`);
+      try {
+        await fetch(`${API_BASE}/reports/clear?username=${encodeURIComponent(user.username)}`, { method: 'POST' });
+      } catch {}
+    }
+    set({
+      biomarkers: [],
+      diagnosedConditions: [],
+      reportSummary: '',
+    });
   },
 
   setFocusedIndex: (idx) => {

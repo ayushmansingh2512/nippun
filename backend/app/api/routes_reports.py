@@ -39,13 +39,37 @@ async def upload_report(
         except Exception:
             raw_text = f"Binary medical document: {file.filename}"
 
-    # Parse with Clover (Gemini Vision / Multimodal)
-    parsed = await report_parser_agent.parse_report_text(raw_text, file_name=file.filename)
-
     clean_username = username.strip().lower() if username else None
+
+    # Parse with Clover (Gemini Multimodal Vision + Text OCR)
+    parsed = await report_parser_agent.parse_report(
+        report_text=raw_text,
+        file_name=file.filename,
+        file_bytes=contents,
+        patient_name=clean_username,
+    )
 
     # Save to Neon DB / SQLite with user identity
     try:
+        # If user has an existing report, replace it with the fresh upload
+        if clean_username:
+            try:
+                old_stmt = select(MedicalReport).where(
+                    or_(
+                        MedicalReport.username == clean_username,
+                        and_(
+                            MedicalReport.username.is_(None),
+                            MedicalReport.file_name.ilike(f"%{clean_username}%")
+                        )
+                    )
+                )
+                old_res = await db.execute(old_stmt)
+                for old_rep in old_res.scalars().all():
+                    await db.delete(old_rep)
+                await db.commit()
+            except Exception:
+                pass
+
         new_report = MedicalReport(
             username=clean_username,
             file_name=file.filename,
@@ -103,6 +127,22 @@ async def get_latest_report(
             report = result.scalar_one_or_none()
 
             if report:
+                # If report had the old synthetic fallback summary, purge it immediately
+                summary = str(report.extracted_biomarkers.get("clinical_summary", "")) if isinstance(report.extracted_biomarkers, dict) else ""
+                if "Blood test flags borderline prediabetic fasting glucose" in summary:
+                    try:
+                        await db.delete(report)
+                        await db.commit()
+                    except Exception:
+                        pass
+                    return {
+                        "success": True,
+                        "has_report": False,
+                        "username": clean_username,
+                        "message": f"Previous demo report cleared. Please upload your personal lab report.",
+                        "parsed_data": None,
+                    }
+
                 # If report had username=NULL, claim it permanently for this patient
                 if not report.username:
                     try:
@@ -164,6 +204,29 @@ async def get_latest_report(
         "parsed_data": fallback_data,
         "uploaded_at": "2026-10-24T10:00:00Z",
     }
+
+@router.post("/clear")
+async def clear_user_reports(
+    username: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
+    clean_username = username.strip().lower() if username else None
+    if not clean_username:
+        return {"success": False, "message": "username required"}
+
+    stmt = select(MedicalReport).where(
+        or_(
+            MedicalReport.username == clean_username,
+            MedicalReport.file_name.ilike(f"%{clean_username}%")
+        )
+    )
+    res = await db.execute(stmt)
+    reports = res.scalars().all()
+    count = len(reports)
+    for r in reports:
+        await db.delete(r)
+    await db.commit()
+    return {"success": True, "deleted_count": count, "username": clean_username}
 
 @router.get("/debug-db")
 async def debug_db(db: AsyncSession = Depends(get_db)):

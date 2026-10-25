@@ -41,7 +41,9 @@ class GeminiClient:
             }
             parts: List[Dict[str, Any]] = []
             if inline_data:
-                parts.append({"inline_data": inline_data})
+                mime = inline_data.get("mimeType") or inline_data.get("mime_type") or "application/pdf"
+                b64_str = inline_data.get("data") or ""
+                parts.append({"inlineData": {"mimeType": mime, "data": b64_str}})
             parts.append({"text": prompt})
 
             payload: Dict[str, Any] = {
@@ -80,7 +82,9 @@ class GeminiClient:
 
             parts = []
             if inline_data:
-                parts.append({"inline_data": inline_data})
+                mime = inline_data.get("mimeType") or inline_data.get("mime_type") or "application/pdf"
+                b64_str = inline_data.get("data") or ""
+                parts.append({"inlineData": {"mimeType": mime, "data": b64_str}})
             parts.append({"text": prompt})
 
             payload = {
