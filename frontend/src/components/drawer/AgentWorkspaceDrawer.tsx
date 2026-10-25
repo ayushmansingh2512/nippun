@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { BotAvatar } from 'bot-avatars';
 import { useHealthcareStore, Doctor } from '../../store/useHealthcareStore';
 import {
+  X,
   FileText,
   Activity,
   Calendar,
@@ -24,7 +26,7 @@ export interface HealthcareAgent {
   name: string;
   role: string;
   specialty: string;
-  avatarType: 'clover' | 'flower' | 'square' | 'ghost';
+  avatarType: 'clover' | 'flower' | 'square' | 'ghost' | 'pebble' | 'cat';
   face?: 'eyes' | 'mouth';
   color: string;
   model: string;
@@ -33,12 +35,16 @@ export interface HealthcareAgent {
   hat?: 'beret' | 'beanie' | 'party' | 'crown';
   headphones?: boolean;
   bowTie?: boolean;
+  accessoryColor?: string;
 }
 
 export const AgentWorkspaceDrawer: React.FC<{
   activeAgent: HealthcareAgent;
+  allAgents?: HealthcareAgent[];
+  currentIndex?: number;
+  onSelectAgent?: (index: number) => void;
   onClose: () => void;
-}> = ({ activeAgent, onClose }) => {
+}> = ({ activeAgent, allAgents, currentIndex, onSelectAgent, onClose }) => {
   const {
     currentUser,
     drawerMode,
@@ -65,6 +71,17 @@ export const AgentWorkspaceDrawer: React.FC<{
   const [uploadLoading, setUploadLoading] = useState(false);
   const [locationInput, setLocationInput] = useState(userLocation || 'Gorakhpur, Uttar Pradesh');
   const [selectedSpecialty, setSelectedSpecialty] = useState('Diabetologist & Internal Medicine');
+
+  // Direct Escape key listener to close drawer immediately
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   React.useEffect(() => {
     if (userLocation) {
@@ -95,6 +112,105 @@ export const AgentWorkspaceDrawer: React.FC<{
     setUploadLoading(false);
   };
 
+  // Dynamically extract key patient biomarkers from the verified medical lab record
+  const glucoseMarker = biomarkers.find((b) => /glucose|sugar|hba1c/i.test(b.name));
+  const vitDMarker = biomarkers.find((b) => /vitamin d|25-oh/i.test(b.name));
+  const lipidMarker = biomarkers.find((b) => /cholesterol|ldl|lipid/i.test(b.name));
+  const rbcMarker = biomarkers.find((b) => /hemoglobin|ferritin|iron/i.test(b.name));
+  const thyroidMarker = biomarkers.find((b) => /tsh|thyroid/i.test(b.name));
+
+  // Dynamically generate targeted pharmacological & supplement recommendations based on active lab telemetry
+  const dynamicSupplements = [
+    ...(vitDMarker
+      ? [
+        {
+          name: `Cholecalciferol Vitamin D3 (60,000 IU/wk or 5,000 IU/day) + K2 (100mcg MK-7)`,
+          timing: 'Morning with dietary healthy fats (eggs, nuts, whole milk)',
+          rationale: `Directly formulated to correct your baseline serum 25-OH of ${vitDMarker.value} ${vitDMarker.unit} (${vitDMarker.flag}). Restores optimal 45–60 ng/mL immune and musculoskeletal baseline.`,
+          badge: vitDMarker.flag === 'LOW' ? 'High Priority Deficiency' : 'Maintenance Protocol',
+        },
+        {
+          name: 'Magnesium Glycinate (300 mg elemental)',
+          timing: 'Night, 45 minutes prior to sleep',
+          rationale: `Essential enzymatic cofactor required for hepatic 25-hydroxylase conversion of Vitamin D3 (patient level: ${vitDMarker.value} ${vitDMarker.unit}).`,
+          badge: 'Enzymatic Co-Factor',
+        },
+      ]
+      : []),
+    ...(glucoseMarker
+      ? [
+        {
+          name: 'Alpha Lipoic Acid (600 mg) + Berberine HCl / Chromium',
+          timing: '15 minutes before highest carbohydrate meal of the day',
+          rationale: `Calibrated specifically for your ${glucoseMarker.name} of ${glucoseMarker.value} ${glucoseMarker.unit} (${glucoseMarker.flag}). Stimulates peripheral GLUT-4 translocation to blunt glycemic spikes.`,
+          badge: glucoseMarker.flag === 'HIGH' ? 'Glycemic Sensitivity Flag' : 'Metabolic Support',
+        },
+      ]
+      : []),
+    ...(lipidMarker
+      ? [
+        {
+          name: 'High-Concentration Omega-3 EPA/DHA (2,000 mg) + CoQ10 (100 mg)',
+          timing: 'With lunch or evening dinner',
+          rationale: `Formulated to treat circulating atherogenic lipid markers (${lipidMarker.name}: ${lipidMarker.value} ${lipidMarker.unit}, ${lipidMarker.flag}). Reduces vascular inflammation and endothelial oxidative stress.`,
+          badge: lipidMarker.flag === 'HIGH' ? 'Cardio-Metabolic Flag' : 'Lipid Maintenance',
+        },
+      ]
+      : []),
+    ...(rbcMarker
+      ? [
+        {
+          name: 'Liposomal Iron / Ferrous Bisglycinate (30 mg) + Vitamin C (500 mg)',
+          timing: 'Mid-morning on an empty stomach with water or citrus fruit',
+          rationale: `Indicated for sub-optimal ${rbcMarker.name} (${rbcMarker.value} ${rbcMarker.unit}, ${rbcMarker.flag}) to accelerate erythrocyte hemoglobin synthesis without GI distress.`,
+          badge: rbcMarker.flag === 'LOW' ? 'Hematologic Recovery' : 'Oxygen Transport',
+        },
+      ]
+      : []),
+    ...(thyroidMarker && thyroidMarker.flag !== 'NORMAL'
+      ? [
+        {
+          name: 'Selenium (200 mcg) + Zinc Bisglycinate (15 mg)',
+          timing: 'Morning post-breakfast',
+          rationale: `Supports peripheral T4 to active T3 conversion for thyroid health (${thyroidMarker.name}: ${thyroidMarker.value} ${thyroidMarker.unit}).`,
+          badge: 'Endocrine Support',
+        },
+      ]
+      : []),
+  ];
+
+  // Dynamic Movement Prescriptions tailored to active lab biomarkers for Abhishek
+  const dynamicMovementProtocols = [
+    {
+      title: 'GLUT-4 Muscular Glucose Disposal Protocol',
+      biomarkerRef: glucoseMarker ? `${glucoseMarker.name}: ${glucoseMarker.value} ${glucoseMarker.unit} (${glucoseMarker.flag})` : 'Fasting Glucose Surveillance',
+      protocol: 'Post-Prandial 15-Minute Brisk Walks & High-Volume Squats',
+      mechanism: 'Skeletal muscle contractions stimulate GLUT-4 vesicle translocation to cellular membranes independent of insulin pathways, rapidly pulling circulating glucose into muscle glycogen.',
+      dosage: 'Daily within 20 mins after lunch & dinner; 3 sets of bodyweight squats.',
+    },
+    {
+      title: 'Endothelial Lipid Oxidation & HDL Upregulation',
+      biomarkerRef: lipidMarker ? `${lipidMarker.name}: ${lipidMarker.value} ${lipidMarker.unit} (${lipidMarker.flag})` : 'Lipid Panel Optimization',
+      protocol: 'Zone 2 Steady-State Cardio (35–45 minutes, 65–75% Max HR)',
+      mechanism: 'Low-intensity aerobic threshold maximizes mitochondrial fatty acid beta-oxidation and stimulates reverse cholesterol transport, clearing excess circulating LDL/ApoB particles.',
+      dosage: '4 sessions per week (Incline treadmill walking or upright stationary bike).',
+    },
+    {
+      title: 'Endogenous UVB Vitamin D3 Synthesis & Bone Mineralization',
+      biomarkerRef: vitDMarker ? `${vitDMarker.name}: ${vitDMarker.value} ${vitDMarker.unit} (${vitDMarker.flag})` : 'Vitamin D Optimization',
+      protocol: 'Outdoor Sunlight Ruck / Weighted Brisk Walk',
+      mechanism: 'Combined axial skeletal loading promotes osteoblast mineralization while natural morning UVB solar radiation triggers endogenous 7-dehydrocholesterol photo-isomerization.',
+      dosage: '30 minutes outdoor morning sunlight walk (before 10:00 AM) 3x weekly.',
+    },
+    {
+      title: 'Aerobic Fatigue Ceiling & Hypoxia Prevention',
+      biomarkerRef: rbcMarker ? `${rbcMarker.name}: ${rbcMarker.value} ${rbcMarker.unit} (${rbcMarker.flag})` : 'RBC Index Maintenance',
+      protocol: 'Strict Heart Rate Ceiling & Extended Recovery Intervals',
+      mechanism: `Due to microcytic status (${rbcMarker?.value || '12.8'} ${rbcMarker?.unit || 'g/dL'}), cap continuous training at 135 BPM to prevent tissue hypoxia and premature lactic accumulation.`,
+      dosage: 'Avoid high-intensity exhaustive anaerobic HIIT until hemoglobin normalizes.',
+    },
+  ];
+
   return (
     <aside
       style={{
@@ -105,24 +221,26 @@ export const AgentWorkspaceDrawer: React.FC<{
         height: '100svh',
         backgroundColor: '#faf8f5',
         borderLeft: '1px solid #111',
-        zIndex: 50,
+        zIndex: 100,
         display: 'flex',
         flexDirection: 'column',
       }}
     >
-      {/* Header */}
+      {/* Header with Close and ESC controls */}
       <header
         style={{
-          padding: '1.25rem 2rem',
+          padding: '1.25rem 1.75rem',
           borderBottom: '1px solid #111',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           backgroundColor: '#f2eee9',
+          flexShrink: 0,
         }}
       >
+        {/* Left Side: Avatar + Agent Name + Close Button Directly Underneath */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.15rem' }}>
-          <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 52, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <BotAvatar
               type={activeAgent.avatarType}
               state={agentStates[activeAgent.id] || 'default'}
@@ -131,8 +249,9 @@ export const AgentWorkspaceDrawer: React.FC<{
               hat={activeAgent.hat}
               headphones={activeAgent.headphones}
               bowTie={activeAgent.bowTie}
+              accessoryColor="#18181b"
               whirl={1}
-              size={48}
+              size={52}
               shading="plastic"
             />
           </div>
@@ -150,20 +269,46 @@ export const AgentWorkspaceDrawer: React.FC<{
                     agentStates[activeAgent.id] === 'working'
                       ? '#fef08a'
                       : agentStates[activeAgent.id] === 'sleeping'
-                      ? '#e2e8f0'
-                      : '#bbf7d0',
+                        ? '#e2e8f0'
+                        : '#bbf7d0',
                 }}
                 className="subheading-xs"
               >
                 {agentStates[activeAgent.id]?.toUpperCase() || 'DEFAULT'}
               </span>
             </div>
-            <p className="subheading-xs" style={{ color: '#555', marginTop: '0.2rem' }}>
+            <p className="subheading-xs" style={{ color: '#555', marginTop: '0.15rem' }}>
               {activeAgent.role} • {activeAgent.specialty}
             </p>
+
+            {/* Close Button on the left side down the name of the agent */}
+            {/* <button
+              onClick={onClose}
+              className="subheading-xs"
+              style={{
+                marginTop: '0.45rem',
+                padding: '0.35rem 0.85rem',
+                backgroundColor: '#111111',
+                color: '#ffffff',
+                border: '1.5px solid #111111',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontWeight: 700,
+                fontSize: '0.72rem',
+                boxShadow: '1px 1px 0px rgba(0,0,0,0.15)',
+              }}
+              title="Close sidebar (ESC)"
+              aria-label="Close sidebar"
+            >
+              <X size={14} />
+              <span>✕ CLOSE (ESC)</span>
+            </button> */}
           </div>
         </div>
 
+        {/* Right Side: Cycle Animation & Big Cross Close Button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button
             onClick={() =>
@@ -172,8 +317,8 @@ export const AgentWorkspaceDrawer: React.FC<{
                 agentStates[activeAgent.id] === 'working'
                   ? 'sleeping'
                   : agentStates[activeAgent.id] === 'sleeping'
-                  ? 'default'
-                  : 'working'
+                    ? 'default'
+                    : 'working'
               )
             }
             className="subheading-xs"
@@ -181,24 +326,32 @@ export const AgentWorkspaceDrawer: React.FC<{
             style={{
               padding: '0.45rem 0.85rem',
               border: '1px solid #111',
-              background: 'transparent',
+              background: '#ffffff',
               cursor: 'pointer',
+              fontSize: '0.7rem',
             }}
           >
-            CYCLE ANIMATION [{agentStates[activeAgent.id] === 'working' ? '⚡ WORK' : agentStates[activeAgent.id] === 'sleeping' ? '💤 SLEEP' : '👁️ AWAKE'}]
+            ANIMATION [{agentStates[activeAgent.id] === 'working' ? '⚡ WORK' : agentStates[activeAgent.id] === 'sleeping' ? '💤 SLEEP' : '👁️ AWAKE'}]
           </button>
+
           <button
             onClick={onClose}
-            className="subheading-xs"
             style={{
-              padding: '0.45rem 1rem',
-              backgroundColor: '#111',
-              color: '#fff',
-              border: '1px solid #111',
+              padding: '0.20rem 0.85rem',
+              backgroundColor: '#111111',
+              color: '#ffffff',
+              border: '1px solid #111111',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               cursor: 'pointer',
+              gap: '10px'
             }}
+            title="Close sidebar [ESC]"
+            aria-label="Close sidebar"
           >
-            CLOSE [ESC]
+            ESC
+            <X size={18} />
           </button>
         </div>
       </header>
@@ -258,7 +411,8 @@ export const AgentWorkspaceDrawer: React.FC<{
         {/* VIEW 1: AGENT SPECIALIST CONSOLE (Dynamically changes with selected Agent!) */}
         {drawerMode === 'console' && (
           <div>
-            {/* 1. CLOVER (Triage / Lab Ingest) */}
+
+            {/* 1. KITTU (Triage / Lab Ingest) */}
             {activeAgent.id === 'triage' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {/* Upload & Sample Demo Banner */}
@@ -312,6 +466,7 @@ export const AgentWorkspaceDrawer: React.FC<{
                     </button>
                   </div>
                 </div>
+
 
                 {/* Synthesis Card */}
                 <div style={{ border: '1px solid #111', padding: '1.25rem', backgroundColor: '#fff' }}>
@@ -371,8 +526,8 @@ export const AgentWorkspaceDrawer: React.FC<{
                                     b.flag === 'LOW'
                                       ? '#fed7aa'
                                       : b.flag === 'HIGH'
-                                      ? '#fecaca'
-                                      : '#bbf7d0',
+                                        ? '#fecaca'
+                                        : '#bbf7d0',
                                   color: '#111',
                                   fontSize: '0.65rem',
                                 }}
@@ -389,7 +544,7 @@ export const AgentWorkspaceDrawer: React.FC<{
               </div>
             )}
 
-            {/* 2. FLOWER (Pharma / RX Guide) */}
+            {/* 2. HEMANK (Pharma / RX Guide) */}
             {activeAgent.id === 'pharma' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div style={{ border: '1px solid #111', padding: '1.25rem', backgroundColor: '#fff' }}>
@@ -404,28 +559,9 @@ export const AgentWorkspaceDrawer: React.FC<{
                   </p>
                 </div>
 
-                {/* Supplement Prescriptions */}
+                {/* Dynamic Supplement Prescriptions */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                  {[
-                    {
-                      name: 'Vitamin D3 (5000 IU) + K2 (100mcg MK-7)',
-                      timing: 'Morning with healthy fats (eggs/avocado)',
-                      rationale: 'Directly targets baseline 18.4 ng/mL hypovitaminosis to restore optimal 45–60 ng/mL range.',
-                      badge: 'High Priority',
-                    },
-                    {
-                      name: 'Magnesium Glycinate (300 mg elemental)',
-                      timing: 'Night, 45 minutes prior to sleep',
-                      rationale: 'Essential enzymatic cofactor required for hepatic conversion of Vitamin D3 into active 25-OH.',
-                      badge: 'Co-Factor',
-                    },
-                    {
-                      name: 'Alpha Lipoic Acid / Berberine (500 mg)',
-                      timing: '15 minutes before highest carbohydrate meal',
-                      rationale: 'Stimulates peripheral GLUT-4 translocation to attenuate elevated 104 mg/dL fasting glucose.',
-                      badge: 'Metabolic',
-                    },
-                  ].map((rx) => (
+                  {dynamicSupplements.map((rx) => (
                     <div
                       key={rx.name}
                       style={{
@@ -451,19 +587,54 @@ export const AgentWorkspaceDrawer: React.FC<{
                   ))}
                 </div>
 
+                {/* Lab-Correlated Contraindications & Safety Warnings */}
+                <div style={{ border: '1px solid #111', padding: '1.15rem', backgroundColor: '#fff', borderLeft: '4px solid #ef4444' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.5rem' }}>
+                    <AlertTriangle size={16} style={{ color: '#ef4444' }} />
+                    <span className="subheading-xs" style={{ color: '#b91c1c', fontWeight: 700 }}>
+                      LAB-CORRELATED CONTRAINDICATIONS & SAFETY WARNINGS
+                    </span>
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }} className="paragraph-s">
+                    {glucoseMarker && glucoseMarker.flag === 'HIGH' && (
+                      <li>
+                        <strong>Glycemic Elevation ({glucoseMarker.name}: {glucoseMarker.value} {glucoseMarker.unit}):</strong> Avoid high-fructose syrups and high-dose systemic corticosteroids that provoke acute hyperosmolar excursions.
+                      </li>
+                    )}
+                    {lipidMarker && lipidMarker.flag === 'HIGH' && (
+                      <li>
+                        <strong>Dyslipidemia ({lipidMarker.name}: {lipidMarker.value} {lipidMarker.unit}):</strong> Avoid hydrogenated trans-fats and monitor AST/ALT liver enzymes if combining lipid-lowering agents.
+                      </li>
+                    )}
+                    {vitDMarker && vitDMarker.flag === 'LOW' && (
+                      <li>
+                        <strong>Hypovitaminosis D ({vitDMarker.name}: {vitDMarker.value} {vitDMarker.unit}):</strong> Avoid taking Vitamin D in isolation without Magnesium cofactor, as hepatic enzymes require magnesium to synthesize calcitriol.
+                      </li>
+                    )}
+                    {rbcMarker && rbcMarker.flag === 'LOW' && (
+                      <li>
+                        <strong>Microcytic Trend ({rbcMarker.name}: {rbcMarker.value} {rbcMarker.unit}):</strong> Do NOT consume calcium supplements, dairy, tea, or coffee within 2 hours of iron doses (tannins inhibit mucosal absorption).
+                      </li>
+                    )}
+                    <li>
+                      <strong>Acute Fever Protocol:</strong> Never co-administer duplicate acetaminophen/paracetamol products (e.g. cold combination syrups) with Dolo/Calpol 650 (max 4g/24h ceiling).
+                    </li>
+                  </ul>
+                </div>
+
                 {/* Acute Symptom & Fever OTC Formulary */}
                 <div style={{ border: '1px solid #111', padding: '1.25rem', backgroundColor: '#fff', borderLeft: '4px solid #059669' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                  {/* <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
                     <span className="subheading-xs" style={{ color: '#047857', fontWeight: 700 }}>
                       💊 ACUTE SYMPTOM & FEVER OTC FORMULARY
                     </span>
                     <span className="subheading-xs" style={{ fontSize: '0.6rem', border: '1px solid #059669', padding: '0.15rem 0.45rem', backgroundColor: '#ecfdf5', color: '#047857' }}>
                       OTC CERTIFIED (NO RX REQUIRED)
                     </span>
-                  </div>
+                  </div> */}
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                    <div style={{ border: '1px solid #eee', padding: '0.9rem', backgroundColor: '#faf8f5' }}>
+                    {/* <div style={{ border: '1px solid #eee', padding: '0.9rem', backgroundColor: '#faf8f5' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <strong className="paragraph-m" style={{ fontSize: '0.92rem' }}>
                           Paracetamol IP 650mg / 500mg (Acetaminophen)
@@ -481,7 +652,7 @@ export const AgentWorkspaceDrawer: React.FC<{
                       <p className="paragraph-s" style={{ color: '#666', marginTop: '0.2rem', fontSize: '0.8rem' }}>
                         First-line antipyretic & analgesic for fever, pyrexia, body ache, and headache. Strictly avoid alcohol.
                       </p>
-                    </div>
+                    </div> */}
 
                     <div style={{ border: '1px solid #eee', padding: '0.9rem', backgroundColor: '#faf8f5' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -519,7 +690,7 @@ export const AgentWorkspaceDrawer: React.FC<{
               </div>
             )}
 
-            {/* 3. SQUARE (Kinesis / Movement Lab) */}
+            {/* 3. ABHISHEK (Kinesis / Movement Lab) */}
             {activeAgent.id === 'kinesio' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div style={{ border: '1px solid #111', padding: '1.25rem', backgroundColor: '#fff' }}>
@@ -532,6 +703,53 @@ export const AgentWorkspaceDrawer: React.FC<{
                   <p className="paragraph-s" style={{ color: '#666', marginTop: '0.35rem' }}>
                     Targeted training split structured to stimulate non-insulin mediated glucose clearance.
                   </p>
+                </div>
+
+                {/* Lab-Derived Movement Protocols */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="subheading-xs" style={{ color: '#db2777', fontWeight: 700 }}>
+                      ⚡ TARGETED LAB-CORRELATED MOVEMENT PROTOCOLS
+                    </span>
+                    <span className="subheading-xs" style={{ fontSize: '0.6rem', border: '1px solid #db2777', padding: '0.15rem 0.45rem', color: '#db2777' }}>
+                      METABOLIC ADAPTATION ACTIVE
+                    </span>
+                  </div>
+
+                  {dynamicMovementProtocols.map((p) => (
+                    <div
+                      key={p.title}
+                      style={{
+                        border: '1px solid #111',
+                        padding: '1.15rem',
+                        backgroundColor: '#ffffff',
+                        borderLeft: '4px solid #db2777',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <strong className="paragraph-m" style={{ fontSize: '0.9rem' }}>{p.title}</strong>
+                          <div style={{ marginTop: '0.2rem' }}>
+                            <span className="subheading-xs" style={{ fontSize: '0.62rem', backgroundColor: '#fdf2f8', padding: '0.15rem 0.45rem', border: '1px solid #fbcfe8', color: '#db2777', fontWeight: 600 }}>
+                              {p.biomarkerRef}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="subheading-xs" style={{ border: '1px solid #111', padding: '0.2rem 0.5rem', fontSize: '0.65rem' }}>
+                          {p.protocol.split(' ')[0]}
+                        </span>
+                      </div>
+                      <p className="paragraph-s" style={{ color: '#be185d', marginTop: '0.35rem', fontWeight: 600 }}>
+                        PRESCRIPTION: {p.protocol}
+                      </p>
+                      <p className="paragraph-s" style={{ color: '#555', marginTop: '0.2rem' }}>
+                        {p.mechanism}
+                      </p>
+                      <p className="paragraph-s" style={{ color: '#333', marginTop: '0.25rem', fontSize: '0.8rem', fontWeight: 500 }}>
+                        <strong>DOSAGE & TIMING:</strong> {p.dosage}
+                      </p>
+                    </div>
+                  ))}
                 </div>
 
                 {/* 7-Day Split */}
@@ -1075,16 +1293,69 @@ export const AgentWorkspaceDrawer: React.FC<{
                       </span>
                     </div>
 
-                    <p
-                      className="paragraph-regular"
-                      style={{
-                        whiteSpace: 'pre-wrap',
-                        fontSize: '0.9rem',
-                        lineHeight: 1.55,
-                      }}
-                    >
-                      {msg.text || (isStreaming ? 'Synthesizing response...' : '')}
-                    </p>
+                    {msg.sender === 'user' ? (
+                      <p
+                        className="paragraph-regular"
+                        style={{
+                          whiteSpace: 'pre-wrap',
+                          fontSize: '0.9rem',
+                          lineHeight: 1.55,
+                          margin: 0,
+                        }}
+                      >
+                        {msg.text}
+                      </p>
+                    ) : (
+                      <div
+                        className="agent-chat-markdown"
+                        style={{
+                          fontSize: '0.9rem',
+                          lineHeight: 1.6,
+                          color: '#111',
+                          overflowWrap: 'break-word',
+                        }}
+                      >
+                        <ReactMarkdown
+                          components={{
+                            h1: ({ node, ...props }) => (
+                              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0.65rem 0 0.35rem 0', color: '#111', borderBottom: '1px solid #e5e5e5', paddingBottom: '0.2rem' }} {...props} />
+                            ),
+                            h2: ({ node, ...props }) => (
+                              <h4 style={{ fontSize: '0.98rem', fontWeight: 700, margin: '0.6rem 0 0.3rem 0', color: '#111' }} {...props} />
+                            ),
+                            h3: ({ node, ...props }) => (
+                              <h5 style={{ fontSize: '0.92rem', fontWeight: 700, margin: '0.5rem 0 0.25rem 0', color: '#16a34a' }} {...props} />
+                            ),
+                            h4: ({ node, ...props }) => (
+                              <h6 style={{ fontSize: '0.88rem', fontWeight: 700, margin: '0.4rem 0 0.2rem 0', color: '#333' }} {...props} />
+                            ),
+                            p: ({ node, ...props }) => (
+                              <p style={{ margin: '0.35rem 0', lineHeight: 1.55 }} {...props} />
+                            ),
+                            ul: ({ node, ...props }) => (
+                              <ul style={{ margin: '0.35rem 0 0.5rem 1.25rem', padding: 0, listStyleType: 'disc' }} {...props} />
+                            ),
+                            ol: ({ node, ...props }) => (
+                              <ol style={{ margin: '0.35rem 0 0.5rem 1.25rem', padding: 0, listStyleType: 'decimal' }} {...props} />
+                            ),
+                            li: ({ node, ...props }) => (
+                              <li style={{ margin: '0.25rem 0' }} {...props} />
+                            ),
+                            strong: ({ node, ...props }) => (
+                              <strong style={{ fontWeight: 700, color: '#111' }} {...props} />
+                            ),
+                            blockquote: ({ node, ...props }) => (
+                              <blockquote style={{ borderLeft: '3px solid #16a34a', paddingLeft: '0.75rem', margin: '0.5rem 0', color: '#555', fontStyle: 'italic' }} {...props} />
+                            ),
+                            code: ({ node, ...props }) => (
+                              <code style={{ backgroundColor: '#f1f1f1', padding: '0.1rem 0.35rem', borderRadius: '3px', fontSize: '0.82rem', fontFamily: 'monospace' }} {...props} />
+                            ),
+                          }}
+                        >
+                          {msg.text || (isStreaming ? 'Synthesizing response...' : '')}
+                        </ReactMarkdown>
+                      </div>
+                    )}
 
                     {msg.toolResult?.type === 'booking_confirmed' && (
                       <div
@@ -1272,12 +1543,12 @@ export const AgentWorkspaceDrawer: React.FC<{
           onChange={(e) => setInputVal(e.target.value)}
           placeholder={
             activeAgent.id === 'triage'
-              ? 'Ask CLOVER about your lab results, blood work, symptoms (e.g. fever), or what to take...'
+              ? 'Ask KITTU about your lab results, blood work, symptoms (e.g. fever), or what to take...'
               : activeAgent.id === 'pharma'
-              ? 'Ask FLOWER about medicine names, fever remedies, dosages, pricing (e.g., Paracetamol/Dolo 650), or drug interactions...'
-              : activeAgent.id === 'kinesio'
-              ? 'Ask SQUARE about workout splits, heart rate zones, or mobility...'
-              : 'Ask GHOST to scout nearby specialists or lock an appointment via Gmail & GCal...'
+                ? 'Ask CHINTU about medicine names, fever remedies, dosages, pricing (e.g., Paracetamol/Dolo 650), or drug interactions...'
+                : activeAgent.id === 'kinesio'
+                  ? 'Ask GOLU about workout splits, heart rate zones, or mobility...'
+                  : 'Ask BUNTY to scout nearby specialists or lock an appointment via Gmail & GCal...'
           }
           style={{
             flex: 1,

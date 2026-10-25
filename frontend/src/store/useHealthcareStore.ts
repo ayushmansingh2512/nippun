@@ -92,7 +92,7 @@ interface HealthcareState {
   scoutSpecialists: (specialty?: string, location?: string) => Promise<void>;
 }
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '') + '/api/v1';
 const AGENT_KEYS = ['triage', 'pharma', 'kinesio', 'concierge'];
 
 const getStoredUser = (): AuthUser | null => {
@@ -205,7 +205,7 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
         id: 'triage-welcome',
         sender: 'agent',
         agentId: 'clover',
-        text: 'CLOVER // INGEST online. OCR engine connected. Upload your medical lab PDF or click "LOAD SAMPLE BLOOD PANEL" to inspect real-time biomarker telemetry.',
+        text: 'KITTU // INGEST online. OCR engine connected. Upload your medical lab PDF or click "LOAD SAMPLE BLOOD PANEL" to inspect real-time biomarker telemetry.',
         timestamp: getTimestamp(),
       },
     ],
@@ -214,7 +214,7 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
         id: 'pharma-welcome',
         sender: 'agent',
         agentId: 'flower',
-        text: 'FLOWER // RX GUIDE online. Clinical database synced with your extracted lab biomarkers. Reviewing Vitamin D3+K2, Magnesium Glycinate, and glycemic sensitivity protocol.',
+        text: 'CHINTU // PHARMA online. Clinical database synced with your extracted lab biomarkers. Reviewing Vitamin D3+K2, Magnesium Glycinate, and fever OTC protocol.',
         timestamp: getTimestamp(),
       },
     ],
@@ -223,7 +223,7 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
         id: 'kinesio-welcome',
         sender: 'agent',
         agentId: 'square',
-        text: 'SQUARE // KINESIS online. 7-day adaptive movement split formulated. Paced for Zone 2 lipid oxidation and muscular GLUT-4 glucose clearance without adrenal fatigue.',
+        text: 'GOLU // KINESIS online. 7-day adaptive movement split formulated. Paced for Zone 2 lipid oxidation and muscular GLUT-4 glucose clearance without adrenal fatigue.',
         timestamp: getTimestamp(),
       },
     ],
@@ -232,7 +232,7 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
         id: 'concierge-welcome',
         sender: 'agent',
         agentId: 'ghost',
-        text: 'GHOST // DISPATCH online. Autonomous radar identified top-rated specialists nearby. Select any doctor card to dispatch a Gmail consultation request and lock your Google Calendar.',
+        text: 'BUNTY // DISPATCH online. Autonomous radar identified top-rated specialists nearby matching your lab diagnosis. Select any doctor card to dispatch a Gmail consultation request and lock your Google Calendar.',
         timestamp: getTimestamp(),
       },
     ],
@@ -387,17 +387,54 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
   },
 
   loadSampleReport: () => {
+    const sampleBiomarkers: Biomarker[] = [
+      { name: 'Hemoglobin', value: '12.8', unit: 'g/dL', reference_range: '13.8 - 17.2', flag: 'LOW' },
+      { name: 'Vitamin D (25-OH)', value: '16.9', unit: 'ng/mL', reference_range: '30.0 - 100.0', flag: 'LOW' },
+      { name: 'Fasting Glucose', value: '108', unit: 'mg/dL', reference_range: '70 - 99', flag: 'HIGH' },
+      { name: 'Total Cholesterol', value: '224', unit: 'mg/dL', reference_range: '< 200', flag: 'HIGH' },
+      { name: 'LDL Cholesterol', value: '142', unit: 'mg/dL', reference_range: '< 100', flag: 'HIGH' },
+      { name: 'HbA1c', value: '5.8', unit: '%', reference_range: '< 5.7', flag: 'HIGH' },
+      { name: 'Serum Ferritin', value: '22', unit: 'ng/mL', reference_range: '30 - 400', flag: 'LOW' },
+      { name: 'Thyroid TSH', value: '2.1', unit: 'uIU/mL', reference_range: '0.4 - 4.0', flag: 'NORMAL' },
+    ];
+    const sampleConditions: DiagnosedCondition[] = [
+      {
+        condition: 'Impaired Fasting Glucose & Prediabetic HbA1c',
+        severity: 'Moderate Risk',
+        biomarkers_implicated: ['Fasting Glucose: 108 mg/dL', 'HbA1c: 5.8%'],
+        needed_specialist: 'Endocrinologist & Diabetologist',
+        clinical_urgency: 'High Priority',
+        guidance: 'Fasting blood glucose elevated at 108 mg/dL with HbA1c at 5.8%. Requires dietary carbohydrate modification, post-prandial movement, and medical surveillance.',
+      },
+      {
+        condition: 'Severe Hypovitaminosis D (Vitamin D3 Deficiency)',
+        severity: 'Deficient',
+        biomarkers_implicated: ['Vitamin D (25-OH): 16.9 ng/mL'],
+        needed_specialist: 'Consultant Physician & Clinical Nutritionist',
+        clinical_urgency: 'High Priority',
+        guidance: 'Serum levels at 16.9 ng/mL require clinical oral cholecalciferol (60,000 IU/week) and magnesium glycinate co-factor.',
+      },
+      {
+        condition: 'Atherogenic Dyslipidemia & Elevated LDL',
+        severity: 'Elevated',
+        biomarkers_implicated: ['Total Cholesterol: 224 mg/dL', 'LDL Cholesterol: 142 mg/dL'],
+        needed_specialist: 'Cardio-Metabolic Specialist',
+        clinical_urgency: 'Moderate Priority',
+        guidance: 'Total cholesterol (224 mg/dL) and LDL (142 mg/dL) elevated. Targeted aerobic Zone 2 cardio and Omega-3 supplementation indicated.',
+      },
+      {
+        condition: 'Microcytic Iron-Deficiency Risk',
+        severity: 'Deficient',
+        biomarkers_implicated: ['Hemoglobin: 12.8 g/dL', 'Serum Ferritin: 22 ng/mL'],
+        needed_specialist: 'Consultant Physician & Hematologist',
+        clinical_urgency: 'Routine Evaluation',
+        guidance: 'Sub-optimal hemoglobin (12.8 g/dL) and low serum ferritin (22 ng/mL) indicate depleted iron reserves.',
+      },
+    ];
     set({
-      biomarkers: [
-        { name: 'Hemoglobin', value: '12.8', unit: 'g/dL', reference_range: '13.8 - 17.2', flag: 'LOW' },
-        { name: 'Vitamin D (25-OH)', value: '16.9', unit: 'ng/mL', reference_range: '30.0 - 100.0', flag: 'LOW' },
-        { name: 'Fasting Glucose', value: '108', unit: 'mg/dL', reference_range: '70 - 99', flag: 'HIGH' },
-        { name: 'Total Cholesterol', value: '224', unit: 'mg/dL', reference_range: '< 200', flag: 'HIGH' },
-        { name: 'HbA1c', value: '5.8', unit: '%', reference_range: '< 5.7', flag: 'HIGH' },
-        { name: 'Serum Ferritin', value: '22', unit: 'ng/mL', reference_range: '30 - 400', flag: 'LOW' },
-        { name: 'Thyroid TSH', value: '2.1', unit: 'uIU/mL', reference_range: '0.4 - 4.0', flag: 'NORMAL' },
-      ],
-      reportSummary: 'Sample CBC & Metabolic Panel parsed successfully. Identified 5 biomarker anomalies requiring nutritional and clinical coordination.',
+      biomarkers: sampleBiomarkers,
+      diagnosedConditions: sampleConditions,
+      reportSummary: 'Sample CBC & Metabolic Panel parsed successfully. Identified 5 biomarker anomalies requiring nutritional, pharmacology, and movement coordination.',
     });
   },
 
@@ -534,15 +571,15 @@ export const useHealthcareStore = create<HealthcareState>((set, get) => ({
           const isFever = ['fever', 'feav', 'take', 'medicine', 'med', 'paracetamol', 'dolo', 'crocin', 'calpol', 'headache', 'body ache', 'cold', 'price'].some(k => lowerText.includes(k));
 
           if (isFever && (activeKey === 'pharma' || activeKey === 'triage')) {
-            target.text = "FLOWER // RX GUIDE Clinical Pharmacology Protocol:\n\n• Recommended Medicine for Fever: Paracetamol IP 650mg (Reputable Brands: Dolo-650, Calpol 650, Crocin 650 Advance).\n• Estimated Retail Market Price: ₹30.91 – ₹32.00 for a strip of 15 tablets (approx ₹2.06 / tablet; Generic Jan Aushadhi is ~₹5–₹10 for 10 tablets).\n• Dosage & Timing: 1 tablet (650mg) after meals with a full glass of water every 4 to 6 hours as needed. DO NOT exceed 3,000–4,000 mg in 24 hours (maintain minimum 4 hours gap between doses).\n• Supportive Care: Hydrate with Electral / WHO-Formula ORS (₹22.50 / sachet) to replenish fluid lost via sweating. Use lukewarm water sponging if temperature exceeds 101°F.\n• Safety: Strictly avoid alcohol (hepatotoxicity risk). Avoid duplicate paracetamol in multi-symptom cold syrups. Consult a physician if fever exceeds 103°F or lasts >3 days.";
+            target.text = "CHINTU // PHARMA Clinical Pharmacology Protocol:\n\n• Recommended Medicine for Fever: Paracetamol IP 650mg (Reputable Brands: Dolo-650, Calpol 650, Crocin 650 Advance).\n• Estimated Retail Market Price: ₹30.91 – ₹32.00 for a strip of 15 tablets (approx ₹2.06 / tablet; Generic Jan Aushadhi is ~₹5–₹10 for 10 tablets).\n• Dosage & Timing: 1 tablet (650mg) after meals with a full glass of water every 4 to 6 hours as needed. DO NOT exceed 3,000–4,000 mg in 24 hours (maintain minimum 4 hours gap between doses).\n• Supportive Care: Hydrate with Electral / WHO-Formula ORS (₹22.50 / sachet) to replenish fluid lost via sweating. Use lukewarm water sponging if temperature exceeds 101°F.\n• Safety: Strictly avoid alcohol (hepatotoxicity risk). Avoid duplicate paracetamol in multi-symptom cold syrups. Consult a physician if fever exceeds 103°F or lasts >3 days.";
           } else if (activeKey === 'triage') {
-            target.text = "Clover telemetry report: Your blood work reflects Vitamin D deficiency (18.4 ng/mL) and borderline fasting glucose (104 mg/dL). Hemoglobin at 13.2 g/dL indicates mild microcytosis. Recommended: Request iron panel & 25-OH recheck.";
+            target.text = "Kittu telemetry report: Your blood work reflects Vitamin D deficiency (18.4 ng/mL) and borderline fasting glucose (104 mg/dL). Hemoglobin at 13.2 g/dL indicates mild microcytosis. Recommended: Request iron panel & 25-OH recheck.";
           } else if (activeKey === 'pharma') {
-            target.text = "Flower pharmacology formulation: Recommending 5000 IU Vitamin D3 + 100mcg K2 (MK-7) taken in the morning with dietary fats. Take 300 mg elemental Magnesium Glycinate at night to optimize enzymatic Vitamin D hydroxylase activation.";
+            target.text = "Chintu pharmacology formulation: Recommending 5000 IU Vitamin D3 + 100mcg K2 (MK-7) taken in the morning with dietary fats. Take 300 mg elemental Magnesium Glycinate at night to optimize enzymatic Vitamin D hydroxylase activation.";
           } else if (activeKey === 'kinesio') {
-            target.text = "Square kinesiology prescription: Schedule 35 minutes of Zone 2 steady-state incline walking on Monday & Thursday. Add Tuesday hypertrophy squats to stimulate non-insulin mediated muscular GLUT-4 glucose clearance.";
+            target.text = "Golu kinesiology prescription: Schedule 35 minutes of Zone 2 steady-state incline walking on Monday & Thursday. Add Tuesday hypertrophy squats to stimulate non-insulin mediated muscular GLUT-4 glucose clearance.";
           } else {
-            target.text = "Ghost concierge dispatch: Located 3 specialized clinics near you. Select any clinic card in your console to send an automated appointment consultation email and reserve your Google Calendar slot.";
+            target.text = "Bunty concierge dispatch: Located 3 specialized clinics near you. Select any clinic card in your console to send an automated appointment consultation email and reserve your Google Calendar slot.";
           }
         }
         return {

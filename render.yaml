@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: a24-healthcare-backend
+    env: python
+    region: ohio
+    plan: free
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        value: postgresql://neondb_owner:npg_pe1M3bJkGoHd@ep-sparkling-sound-b48yohvp-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      - key: CLOUDFLARE_GEMINI_PROXY_URL
+        value: http://127.0.0.1:8787
+      - key: INTERNAL_PROXY_SECRET
+        value: a24-healthcare-internal-key-secret-2026
+      - key: GEMINI_API_KEYS
+        value: AIzaSyDWqmfQ-4gyKbMqmy4fHgc0GbPiw0Fo-hw,AIzaSyCud0VqXYDM7csM5zwMLdUR_L2pPW3YDvI,AIzaSyDaCT98SpZyphGpqeuHWgnnQtmbI_t4o08,AIzaSyAJuM_1yhBk_8pDEhMA7oU0YHSZrB0w3hc,AIzaSyCPfFmF5fsf6jBAnawwDm6ei9MNXxb5IF4,AIzaSyCQ3X8882E23R4Ego4iwNfaGS4XaU2Joyk,AIzaSyBIt7I-sq_dS712mEobQUVKajSUTWbTYkk,AIzaSyCuQnger_p-pf1GKmutZg00WAXsJFB48Nw,AIzaSyB-v3YzAaQJP8eLQQUiXj8PA34aPGOLapI,AIzaSyConioF2Di-htOuumFyo5nS-VGCbRPUFxE,AIzaSyCMiZlaUvxaffvM1wBLbM5jF-jFZkaW-AY,AIzaSyDEq5y0VoY6qwtXMhQO_ROir3hMWImfmV8,AIzaSyDHxanabbD7-OJG1gZz9KuOU4vzeJfgp6M
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: CORS_ORIGINS
+        value: "*"

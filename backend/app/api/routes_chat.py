@@ -252,7 +252,7 @@ async def chat_stream_endpoint(
                 f"4. Supportive care: Hydration with Electral / WHO-formula ORS (≈₹22.50/sachet) to replenish sweat loss, lukewarm tepid sponging if temp > 101°F, and rest. "
                 f"5. Contraindications & warnings: Absolutely NO alcohol (severe hepatotoxicity risk), avoid duplicate paracetamol in cold syrups, liver caution. "
                 f"6. Red flag escalation: Seek immediate doctor if fever > 103°F (39.4°C), lasts > 3 days, or has severe chills, rash, or breathlessness. "
-                f"Format with clean markdown headers and bullet points."
+                f"FORMATTING STYLE: Format with clean, elegant typography. Avoid excessive raw hashtags (#) or asterisks (*). Use clean bold section labels and bullet points."
             )
 
             tokens_received = False

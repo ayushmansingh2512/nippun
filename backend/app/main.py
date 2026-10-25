@@ -14,10 +14,10 @@ import asyncio
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize DB tables (Neon DB / SQLite) with timeout protection
+    # Initialize DB tables (Neon PostgreSQL / SQLite) with timeout protection
     try:
-        await asyncio.wait_for(init_db(), timeout=3.5)
-        print(" [A24 Backend] Database tables initialized successfully.")
+        await asyncio.wait_for(init_db(), timeout=10.0)
+        print(" [A24 Backend] Database tables initialized successfully on Neon PostgreSQL.")
     except Exception as e:
         print(f" [A24 Backend] Database init notice: {e}")
     yield
@@ -53,5 +53,5 @@ def root():
         "docs_url": "/docs",
         "version": "1.0.0",
         "author": "Ayushman Singh",
-        "database": "sqlite3_aiosqlite"
+        "database": "Neon PostgreSQL (AWS us-east-2)"
     }

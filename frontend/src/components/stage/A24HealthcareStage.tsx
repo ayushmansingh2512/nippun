@@ -9,7 +9,7 @@ export interface HealthcareAgent {
   name: string;
   role: string;
   specialty: string;
-  avatarType: 'clover' | 'flower' | 'square' | 'ghost';
+  avatarType: 'clover' | 'flower' | 'square' | 'ghost' | 'pebble' | 'cat';
   color: string;
   model: string;
   capabilities: string[];
@@ -17,52 +17,61 @@ export interface HealthcareAgent {
   hat?: 'beret' | 'beanie' | 'party' | 'crown';
   headphones?: boolean;
   bowTie?: boolean;
+  accessoryColor?: string;
 }
 
 export const AGENTS: HealthcareAgent[] = [
   {
     id: 'triage',
-    name: 'CLOVER · INGEST',
+    name: 'KITTU · INGEST',
     role: 'Medical Report Parser',
     specialty: 'Biomarker & Lab OCR',
     avatarType: 'clover',
     color: '#2563eb',
     model: 'Gemini 2.5 Flash',
-    capabilities: ['PDF Lab Extraction', 'Biomarker Flagging', 'Medical Record Sync'],
+    capabilities: ['PDF Lab Extraction', 'Biomarker Flagging', 'Fever & Symptom Ingest'],
     glasses: 'round',
+    hat: 'beanie',
+    accessoryColor: '#18181b', // Pure black accessories
   },
   {
     id: 'pharma',
-    name: 'FLOWER · RX GUIDE',
+    name: 'CHINTU · PHARMA',
     role: 'Pharmacology Advisor',
-    specialty: 'Medication & Supplement Safety',
+    specialty: 'Medication, Supplements & Fever OTC',
     avatarType: 'flower',
     color: '#16a34a',
     model: 'Gemini 2.5 Pro',
-    capabilities: ['Dosage Timing', 'Contraindication Check', 'Physician Discussion Points'],
+    capabilities: ['Fever & Paracetamol Protocol', 'Dosage & Retail Pricing (INR)', 'Contraindication Check'],
     hat: 'beret',
+    bowTie: true,
+    accessoryColor: '#18181b', // Pure black accessories
   },
   {
     id: 'kinesio',
-    name: 'SQUARE · KINESIS',
+    name: 'GOLU · KINESIS',
     role: 'Exercise & Rehab Coach',
-    specialty: 'Physiotherapy & Mobility',
+    specialty: 'Physiotherapy & GLUT-4 Metabolic Rehab',
     avatarType: 'square',
     color: '#db2777',
     model: 'Gemini 2.5 Flash',
     capabilities: ['Zone 2 Conditioning', 'Hypertrophy for Glucose Clearance', 'Joint Recovery'],
     headphones: true,
+    glasses: 'shades',
+    accessoryColor: '#18181b', // Pure black accessories
   },
   {
     id: 'concierge',
-    name: 'GHOST · DISPATCH',
+    name: 'BUNTY · DISPATCH',
     role: 'Doctor Scout & Scheduler',
-    specialty: 'Specialist Discovery & Booking',
+    specialty: 'Specialist Discovery & GCal Booking',
     avatarType: 'ghost',
     color: '#0284c7',
     model: 'Clinical Discovery & Dispatch',
     capabilities: ['Specialist Discovery', 'Automated Clinic Consultation', 'Calendar Reservation'],
     bowTie: true,
+    glasses: 'round',
+    accessoryColor: '#18181b', // Pure black accessories
   },
 ];
 
@@ -132,13 +141,13 @@ export const A24HealthcareStage: React.FC = () => {
           position: 'fixed',
           top: 0,
           width: '100%',
-          zIndex: 40,
+          zIndex: 60,
           padding: '1.25em 2.5em',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           borderBottom: '1px solid rgba(0,0,0,0.08)',
-          backgroundColor: 'rgba(236, 234, 229, 0.85)',
+          backgroundColor: 'rgba(236, 234, 229, 0.92)',
           backdropFilter: 'blur(8px)',
         }}
       >
@@ -178,7 +187,7 @@ export const A24HealthcareStage: React.FC = () => {
                     background: 'transparent',
                     border: 'none',
                     cursor: 'pointer',
-                    opacity: isSelected ? 1 : 0.45,
+                    opacity: isSelected ? 1 : 0.65,
                     borderBottom: isSelected ? '1.5px solid #111' : '1.5px solid transparent',
                     paddingBottom: '0.2rem',
                     display: 'flex',
@@ -188,7 +197,7 @@ export const A24HealthcareStage: React.FC = () => {
                   }}
                 >
                   <span>{stateIcon}</span>
-                  <span>{ag.id.toUpperCase()}</span>
+                  <span>{ag.name.split(' · ')[0]}</span>
                   <span
                     style={{
                       fontSize: '0.58rem',
@@ -373,15 +382,26 @@ export const A24HealthcareStage: React.FC = () => {
             // Inactive agents sleep ('sleeping') while active agent is awake ('default') or working ('working')
             const currentState = agentStates[agent.id] || (isCurrent ? 'default' : 'sleeping');
 
-            // Diagonal trajectory
-            const translateX = drawerOpen ? offset * 135 : offset * 280;
-            const translateY = drawerOpen ? offset * -85 : offset * -125;
+            // When drawer is open, keep the active agent centered cleanly on the left 44vw stage without crowding
+            const translateX = drawerOpen ? offset * 165 : offset * 280;
+            const translateY = drawerOpen ? 0 : offset * -125;
             const scale = isCurrent
               ? drawerOpen
-                ? 1.15
+                ? 1.05
                 : 1.35
+              : drawerOpen
+              ? 0.62
               : Math.max(0.55, 0.85 - Math.abs(offset) * 0.15);
-            const opacity = drawerOpen && !isCurrent ? 0.22 : Math.abs(offset) > 2 ? 0 : 1;
+            // Inactive agents on left and right have clean separation and never bunch up
+            const opacity = drawerOpen
+              ? isCurrent
+                ? 1
+                : Math.abs(offset) === 1
+                ? 0.55
+                : 0
+              : Math.abs(offset) > 2
+              ? 0
+              : 1;
 
             return (
               <div
@@ -419,6 +439,7 @@ export const A24HealthcareStage: React.FC = () => {
                     hat={agent.hat}
                     headphones={agent.headphones}
                     bowTie={agent.bowTie}
+                    accessoryColor={agent.accessoryColor}
                     whirl={1}
                     size={210}
                     shading="plastic"
@@ -438,7 +459,7 @@ export const A24HealthcareStage: React.FC = () => {
                   <span
                     className="subheading-xs"
                     style={{
-                      opacity: isCurrent ? 0.95 : 0.45,
+                      opacity: isCurrent ? 0.95 : 0.7,
                       borderBottom: isCurrent ? '1px solid #111' : 'none',
                       paddingBottom: '0.15rem',
                       transition: 'opacity 0.3s',
@@ -451,7 +472,7 @@ export const A24HealthcareStage: React.FC = () => {
                     className="subheading-xs"
                     style={{
                       fontSize: '0.62rem',
-                      opacity: isCurrent ? 0.85 : 0.35,
+                      opacity: isCurrent ? 0.85 : 0.6,
                       color:
                         currentState === 'working'
                           ? '#2563eb'
@@ -471,6 +492,77 @@ export const A24HealthcareStage: React.FC = () => {
             );
           })}
         </div>
+
+        {/* Floating Quick Dock for Switching Agents when Drawer is Open */}
+        {drawerOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '1.75rem',
+              left: '2rem',
+              zIndex: 35,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid #111',
+              padding: '0.45rem 0.75rem',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+            }}
+          >
+            <button
+              onClick={() => handleAvatarClick((focusedIndex - 1 + AGENTS.length) % AGENTS.length)}
+              className="subheading-xs"
+              style={{
+                background: 'transparent',
+                border: '1px solid #111',
+                padding: '0.2rem 0.45rem',
+                cursor: 'pointer',
+                fontWeight: 700,
+              }}
+              title="Previous Agent"
+            >
+              ◀
+            </button>
+
+            <div style={{ display: 'flex', gap: '0.3rem' }}>
+              {AGENTS.map((ag, i) => (
+                <button
+                  key={ag.id}
+                  onClick={() => handleAvatarClick(i)}
+                  className="subheading-xs"
+                  style={{
+                    padding: '0.2rem 0.5rem',
+                    border: '1px solid #111',
+                    backgroundColor: i === focusedIndex ? '#111' : '#fff',
+                    color: i === focusedIndex ? '#fff' : '#111',
+                    cursor: 'pointer',
+                    fontSize: '0.62rem',
+                    fontWeight: i === focusedIndex ? 700 : 500,
+                  }}
+                >
+                  {ag.name.split(' · ')[0]}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => handleAvatarClick((focusedIndex + 1) % AGENTS.length)}
+              className="subheading-xs"
+              style={{
+                background: 'transparent',
+                border: '1px solid #111',
+                padding: '0.2rem 0.45rem',
+                cursor: 'pointer',
+                fontWeight: 700,
+              }}
+              title="Next Agent"
+            >
+              ▶
+            </button>
+          </div>
+        )}
 
         {/* Bottom Clinical Telemetry Status Bar */}
         <div
@@ -499,6 +591,9 @@ export const A24HealthcareStage: React.FC = () => {
       {drawerOpen && (
         <AgentWorkspaceDrawer
           activeAgent={activeAgent}
+          allAgents={AGENTS}
+          currentIndex={focusedIndex}
+          onSelectAgent={handleAvatarClick}
           onClose={() => setDrawerOpen(false)}
         />
       )}
