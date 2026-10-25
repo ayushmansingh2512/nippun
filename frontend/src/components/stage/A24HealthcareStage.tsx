@@ -487,11 +487,224 @@ export const A24HealthcareStage: React.FC = () => {
                       ? '💤 SLEEPING (IDLE)'
                       : '👁️ AWAKE & LISTENING'}
                   </span>
+
+                  {/* Dedicated Mouse Arrow Keys Directly Below Agent */}
+                  {isCurrent && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        marginTop: '0.85rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                        backdropFilter: 'blur(8px)',
+                        border: '1.5px solid #111',
+                        padding: '0.45rem 0.75rem',
+                        boxShadow: '3px 3px 0px rgba(0,0,0,0.2)',
+                        pointerEvents: 'auto',
+                        cursor: 'default',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {/* Left Arrow Button for Mouse */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFocusedIndex((focusedIndex - 1 + AGENTS.length) % AGENTS.length);
+                          }}
+                          className="subheading-xs"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            padding: '0.4rem 0.75rem',
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #111',
+                            cursor: 'pointer',
+                            fontWeight: 800,
+                            fontSize: '0.75rem',
+                            color: '#111',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#111';
+                            e.currentTarget.style.color = '#fff';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#fff';
+                            e.currentTarget.style.color = '#111';
+                          }}
+                          title="Click to move to Previous Specialist (or use Left Arrow Key)"
+                          aria-label="Previous Specialist"
+                        >
+                          <span style={{ fontSize: '0.95rem', lineHeight: 1 }}>◀</span>
+                          <span>PREV</span>
+                        </button>
+
+                        {/* Interactive Agent Dots */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0 0.25rem' }}>
+                          {AGENTS.map((ag, i) => (
+                            <button
+                              key={ag.id}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFocusedIndex(i);
+                              }}
+                              style={{
+                                width: i === focusedIndex ? 22 : 9,
+                                height: 9,
+                                borderRadius: 5,
+                                backgroundColor: i === focusedIndex ? ag.color : '#cbd5e1',
+                                border: i === focusedIndex ? '1px solid #111' : '1px solid transparent',
+                                padding: 0,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                              }}
+                              title={`Switch to ${ag.name}`}
+                              aria-label={ag.name}
+                            />
+                          ))}
+                        </div>
+
+                        {/* Right Arrow Button for Mouse */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFocusedIndex((focusedIndex + 1) % AGENTS.length);
+                          }}
+                          className="subheading-xs"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            padding: '0.4rem 0.75rem',
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #111',
+                            cursor: 'pointer',
+                            fontWeight: 800,
+                            fontSize: '0.75rem',
+                            color: '#111',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#111';
+                            e.currentTarget.style.color = '#fff';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#fff';
+                            e.currentTarget.style.color = '#111';
+                          }}
+                          title="Click to move to Next Specialist (or use Right Arrow Key)"
+                          aria-label="Next Specialist"
+                        >
+                          <span>NEXT</span>
+                          <span style={{ fontSize: '0.95rem', lineHeight: 1 }}>▶</span>
+                        </button>
+                      </div>
+
+                      <span
+                        className="subheading-xs"
+                        style={{
+                          fontSize: '0.58rem',
+                          opacity: 0.7,
+                          letterSpacing: '0.05em',
+                        }}
+                      >
+                        CLICK ARROWS OR PRESS [ ← ] [ → ]
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
+
+        {/* Large Stage Floating Arrow Buttons for Mouse */}
+        <button
+          type="button"
+          onClick={() => setFocusedIndex((focusedIndex - 1 + AGENTS.length) % AGENTS.length)}
+          className="subheading-xs"
+          style={{
+            position: 'absolute',
+            left: drawerOpen ? '1rem' : '2.5rem',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 35,
+            width: 48,
+            height: 48,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#ffffff',
+            border: '2px solid #111',
+            boxShadow: '3px 3px 0px #111',
+            cursor: 'pointer',
+            fontSize: '1.25rem',
+            fontWeight: 800,
+            transition: 'all 0.15s ease',
+            color: '#111',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#111';
+            e.currentTarget.style.color = '#fff';
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#fff';
+            e.currentTarget.style.color = '#111';
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+          }}
+          title="Previous Specialist [Left Arrow Key / Mouse Click]"
+          aria-label="Previous Specialist"
+        >
+          ◀
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFocusedIndex((focusedIndex + 1) % AGENTS.length)}
+          className="subheading-xs"
+          style={{
+            position: 'absolute',
+            right: drawerOpen ? 'calc(56vw + 1rem)' : '2.5rem',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 35,
+            width: 48,
+            height: 48,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#ffffff',
+            border: '2px solid #111',
+            boxShadow: '3px 3px 0px #111',
+            cursor: 'pointer',
+            fontSize: '1.25rem',
+            fontWeight: 800,
+            transition: 'all 0.15s ease',
+            color: '#111',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#111';
+            e.currentTarget.style.color = '#fff';
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#fff';
+            e.currentTarget.style.color = '#111';
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+          }}
+          title="Next Specialist [Right Arrow Key / Mouse Click]"
+          aria-label="Next Specialist"
+        >
+          ▶
+        </button>
 
         {/* Floating Quick Dock for Switching Agents when Drawer is Open */}
         {drawerOpen && (
@@ -521,7 +734,7 @@ export const A24HealthcareStage: React.FC = () => {
                 cursor: 'pointer',
                 fontWeight: 700,
               }}
-              title="Previous Agent"
+              title="Previous Agent [Left Arrow Key]"
             >
               ◀
             </button>
@@ -557,7 +770,7 @@ export const A24HealthcareStage: React.FC = () => {
                 cursor: 'pointer',
                 fontWeight: 700,
               }}
-              title="Next Agent"
+              title="Next Agent [Right Arrow Key]"
             >
               ▶
             </button>

@@ -260,6 +260,55 @@ export const AgentWorkspaceDrawer: React.FC<{
               <h2 className="heading-xs" style={{ margin: 0, fontWeight: 700, fontSize: '1.25rem' }}>
                 {activeAgent.name}
               </h2>
+              {allAgents && currentIndex !== undefined && onSelectAgent && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginLeft: '0.2rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => onSelectAgent((currentIndex - 1 + allAgents.length) % allAgents.length)}
+                    style={{
+                      padding: '0.15rem 0.45rem',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #111',
+                      cursor: 'pointer',
+                      fontWeight: 800,
+                      fontSize: '0.75rem',
+                      lineHeight: 1,
+                    }}
+                    title="Previous Specialist (Left Arrow)"
+                    aria-label="Previous Specialist"
+                  >
+                    ◀
+                  </button>
+                  <span
+                    className="subheading-xs"
+                    style={{
+                      fontSize: '0.62rem',
+                      padding: '0.15rem 0.35rem',
+                      backgroundColor: '#111',
+                      color: '#fff',
+                    }}
+                  >
+                    {currentIndex + 1}/{allAgents.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onSelectAgent((currentIndex + 1) % allAgents.length)}
+                    style={{
+                      padding: '0.15rem 0.45rem',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #111',
+                      cursor: 'pointer',
+                      fontWeight: 800,
+                      fontSize: '0.75rem',
+                      lineHeight: 1,
+                    }}
+                    title="Next Specialist (Right Arrow)"
+                    aria-label="Next Specialist"
+                  >
+                    ▶
+                  </button>
+                </div>
+              )}
               <span
                 style={{
                   fontSize: '0.62rem',
