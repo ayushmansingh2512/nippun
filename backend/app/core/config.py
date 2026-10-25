@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     INTERNAL_PROXY_SECRET: str = "a24-healthcare-internal-key-secret-2026"
     GEMINI_DIRECT_API_KEY: str = ""
     GEMINI_API_KEYS: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-1.5-flash"
     
     # Google OAuth / Workspace
     GOOGLE_CLIENT_ID: str = ""

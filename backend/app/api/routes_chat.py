@@ -200,7 +200,7 @@ async def chat_stream_endpoint(
             yield format_sse("token", {"text": f"**Prescription Objective**: {plan['focus_objective']}\n\nWeekly split updated in the Exercise tab with non-insulin mediated GLUT-4 glucose clearance sessions."})
             full_reply_text = f"Prescription: {plan['focus_objective']}"
 
-        # INTENT C: Pharmacology / Medicine / Fever / Supplement Guidance (Flower)
+        # INTENT C: Pharmacology / Medicine / Fever / Piles / Supplement Guidance (Flower)
         elif (
             avatar_type == "flower"
             or any(k in msg_lower for k in [
@@ -208,13 +208,21 @@ async def chat_stream_endpoint(
                 "dose", "dosage", "diet", "drug", "fever", "feaver", "pyrexia", "temperature",
                 "paracetamol", "dolo", "crocin", "calpol", "pacimol", "what should i take",
                 "what can i take", "what to take", "take for", "pain", "headache", "body ache",
-                "cold", "flu", "cough", "tablet", "tablets", "syrup", "price", "mrp", "cost", "otc"
+                "cold", "flu", "cough", "tablet", "tablets", "syrup", "price", "mrp", "cost", "otc",
+                "pile", "piles", "hemorrhoid", "bavasir", "bawaseer", "acid", "acidity", "gas"
             ])
         ):
             is_fever_query = any(k in msg_lower for k in [
-                "fever", "feaver", "pyrexia", "temperature", "chill", "paracetamol",
-                "dolo", "crocin", "calpol", "what should i take", "what to take", "take for",
-                "headache", "body ache", "cold", "flu", "tablet"
+                "fever", "feaver", "pyrexia", "temperature", "chill", "paracetamol", "dolo", "crocin", "calpol"
+            ])
+            is_piles_query = any(k in msg_lower for k in [
+                "pile", "piles", "hemorrhoid", "bavasir", "bawaseer", "anal fissure", "bleeding stool", "constipat"
+            ])
+            is_acidity_query = any(k in msg_lower for k in [
+                "acid", "acidity", "heartburn", "gerd", "gas", "gastric", "stomach burn", "reflux", "bloat"
+            ])
+            is_cold_cough_query = any(k in msg_lower for k in [
+                "cold", "cough", "sneez", "runny nose", "sore throat", "allergy", "congestion"
             ])
 
             yield format_sse("token", {"text": f"Cross-referencing pharmacology database & clinical formulary for {patient_name}...\n\n"})
@@ -224,35 +232,36 @@ async def chat_stream_endpoint(
             yield format_sse("tool_result", {
                 "type": "pharma_advice",
                 "is_fever": is_fever_query,
+                "is_piles": is_piles_query,
                 "fever_protocol": fever_proto if is_fever_query else None,
-                "recommended_medicine": "Paracetamol 650mg (Dolo 650 / Calpol 650 / Crocin 650)" if is_fever_query else "Vitamin D3 + K2 & Magnesium Glycinate",
-                "price_estimate": "₹30.91 – ₹32.00 per strip of 15 tablets (~₹2.06 / tab)" if is_fever_query else "Standard OTC",
+                "recommended_medicine": (
+                    "Daflon 500mg / Cremaffin Plus / Anovate Ointment" if is_piles_query else
+                    "Paracetamol 650mg (Dolo 650 / Calpol 650)" if is_fever_query else
+                    "Pantoprazole 40mg (Pan-40) / Digene" if is_acidity_query else
+                    "Cetirizine 10mg / Levocetirizine" if is_cold_cough_query else
+                    "Vitamin D3 + K2 & Magnesium Glycinate"
+                ),
+                "price_estimate": (
+                    "₹140 – ₹180 (Daflon / Cremaffin / Anovate)" if is_piles_query else
+                    "₹30.91 – ₹32.00 per strip of 15 tablets" if is_fever_query else
+                    "₹80 – ₹120 (Pan-40 / Digene)" if is_acidity_query else
+                    "Standard OTC Pricing (INR)"
+                ),
             })
 
             # Stream response via Gemini with intelligent fallback
             system_instruction = (
-                f"You are FLOWER, the Pharmacology Advisor & Clinical Protocol Agent for the A24 Healthcare Platform. "
+                f"You are CHINTU (FLOWER), the Senior Clinical Pharmacology Advisor & Formulary Specialist for the A24 Healthcare Platform. "
                 f"The patient is {patient_name} in {user_location}. "
                 f"Their extracted report biomarkers are: {json.dumps(biomarkers[:6]) if biomarkers else '[]'}. "
                 f"CLINICAL PHARMACOLOGY DIRECTIVES: "
-                f"When the user asks what they should take, or asks about fever ('feaver'), acute symptoms, headache, pain, cold, or medicine pricing: "
-                f"1. Clearly recommend appropriate over-the-counter (OTC) medication: "
-                f"   - First-line: Paracetamol IP (500mg - 650mg) / Acetaminophen. "
-                f"   - Popular reputable brand names in India: Dolo-650 (Micro Labs), Calpol 650 (GSK), Crocin 650 Advance (Haleon), Pacimol 650. "
-                f"2. Explicitly state the exact dosage & timing: "
-                f"   - 1 tablet (500mg or 650mg) taken orally with water after meals or light food. "
-                f"   - Every 4 to 6 hours as needed if fever or pain persists. "
-                f"   - Maximum safety ceiling: Do NOT exceed 3,000 mg – 4,000 mg in 24 hours (maximum 4–6 tablets of 650mg). Minimum 4 hours between doses. "
-                f"3. Explicitly state the real retail market price in INR (₹): "
-                f"   - Dolo-650 (Strip of 15 tablets): ≈ ₹30.91 (approx ₹2.06 / tablet). "
-                f"   - Calpol 650 (Strip of 15 tablets): ≈ ₹31.50 (approx ₹2.10 / tablet). "
-                f"   - Crocin 650 (Strip of 15 tablets): ≈ ₹32.00 (approx ₹2.13 / tablet). "
-                f"   - Generic Jan Aushadhi Paracetamol 500mg: ≈ ₹5.00 – ₹10.00 for 10 tablets. "
-                f"   - Note OTC availability at local pharmacies and delivery apps (Apollo 24/7, Tata 1mg, Blinkit, Zepto, local chemists). "
-                f"4. Supportive care: Hydration with Electral / WHO-formula ORS (≈₹22.50/sachet) to replenish sweat loss, lukewarm tepid sponging if temp > 101°F, and rest. "
-                f"5. Contraindications & warnings: Absolutely NO alcohol (severe hepatotoxicity risk), avoid duplicate paracetamol in cold syrups, liver caution. "
-                f"6. Red flag escalation: Seek immediate doctor if fever > 103°F (39.4°C), lasts > 3 days, or has severe chills, rash, or breathlessness. "
-                f"FORMATTING STYLE: Format with clean, elegant typography. Avoid excessive raw hashtags (#) or asterisks (*). Use clean bold section labels and bullet points."
+                f"1. Accurately address the patient's EXACT question or symptom (e.g. piles/hemorrhoids, fever, headache, acidity, cold/cough, supplements, or diabetes). Do NOT assume fever unless the patient specifically asks about fever or elevated temperature. "
+                f"2. Recommend appropriate first-line medications (generic name and reputable Indian brand names, e.g. Daflon/Cremaffin/Anovate for piles; Dolo/Calpol for fever; Pan-40/Digene for acidity; Cetzine for cold). "
+                f"3. State exact dosage, timing (strictly before/after meals), frequency, and maximum safety ceiling. "
+                f"4. Quote realistic Indian retail market prices in INR (₹) per strip, bottle, or tube. "
+                f"5. Detail essential non-pharmacological supportive care (diet, sitz bath, hydration, lifestyle adjustments). "
+                f"6. State safety warnings, contraindications, and red flag emergency escalation triggers. "
+                f"FORMATTING STYLE: Format with clean, elegant markdown typography. Avoid excessive raw hashtags (#) or asterisks (*). Use clean bold section labels and bullet points."
             )
 
             tokens_received = False
@@ -269,10 +278,70 @@ async def chat_stream_endpoint(
                 tokens_received = False
 
             if not tokens_received:
-                # Deterministic high-precision fallback
-                if is_fever_query:
+                # Deterministic high-precision fallback tailored specifically to query
+                if is_piles_query:
                     response_body = (
-                        f"### 💊 FLOWER // Clinical Pharmacology Protocol: Fever Relief & Medication Guide\n\n"
+                        f"### 💊 CHINTU // Clinical Pharmacology Protocol: Piles & Hemorrhoid Management\n\n"
+                        f"**Patient:** {patient_name} | **Assessment:** Hemorrhoids (Piles) & Anorectal Care\n\n"
+                        f"#### 1. Recommended First-Line Oral Medication:\n"
+                        f"• **Generic Formulation:** **Micronized Purified Flavonoid Fraction (MPFF 500 mg)**\n"
+                        f"• **Top Reputable Brands in India:**\n"
+                        f"  - **Daflon 500 mg** (Serdia Pharmaceuticals) — ₹145.00 – ₹160.00 per strip of 10 tablets\n"
+                        f"  - **Venex 500 mg** (Sun Pharma) — ₹130.00 – ₹150.00 per strip of 10 tablets\n"
+                        f"• **Dosage & Timing:** Take **1 tablet twice daily** after meals (morning and evening) with a full glass of water. During acute painful flare-ups, physician may prescribe 2 tablets twice daily for 3 days.\n"
+                        f"• **Clinical Action:** Strengthens vascular tone, reduces venous stasis, and decreases rectal vein inflammation.\n\n"
+                        f"#### 2. Stool Softener & Laxative (Prevent Straining):\n"
+                        f"• **Cremaffin Plus Syrup** (Liquid Paraffin + Milk of Magnesia) — ₹140.00 – ₹160.00 per 225ml bottle\n"
+                        f"• **Lactulose Oral Solution (Duphalac)** — ₹180.00 – ₹220.00 per 150ml bottle\n"
+                        f"• **Isabgol (Psyllium Husk)** — ₹120.00 – ₹160.00 per 100g container\n"
+                        f"• **Dosage:** 15 ml syrup or 1–2 teaspoons of Isabgol in lukewarm water/milk at bedtime. Helps produce soft, painless bowel movements without straining.\n\n"
+                        f"#### 3. Topical Relief (Pain, Itching & Swelling):\n"
+                        f"• **Anovate Ointment** (Phenylephrine + Beclomethasone + Lidocaine) — ₹115.00 – ₹130.00 per 20g tube\n"
+                        f"• **Shield Rectal Ointment** (Hydrocortisone + Lidocaine + Allantoin) — ₹95.00 – ₹110.00 per 20g tube\n"
+                        f"• **Administration:** Apply locally inside and around the anal canal using the included applicator 2 to 3 times daily, especially after bowel movements.\n\n"
+                        f"#### 4. Supportive Non-Pharmacological Protocols:\n"
+                        f"• **Warm Sitz Bath:** Sit in a tub of lukewarm water for 15 to 20 minutes, 2 to 3 times daily (especially after passing stool). Relaxes anal sphincter muscles and relieves throbbing pain.\n"
+                        f"• **High Dietary Fiber:** Eat green leafy vegetables, oats, whole grains, papaya, and apples. Avoid ultra-processed spicy or oily foods.\n"
+                        f"• **Hydration:** Consume 3.0 to 3.5 liters of water daily to keep stools soft.\n"
+                        f"• **Avoid Straining:** Do not sit on the toilet for more than 5 minutes or strain forcefully.\n\n"
+                        f"#### 5. When to Consult a Colorectal Surgeon / Emergency Red Flags:\n"
+                        f"• Continuous or heavy rectal bleeding (bright red blood filling the bowl).\n"
+                        f"• Severe, excruciating, sudden throbbing pain indicating a thrombosed external hemorrhoid.\n"
+                        f"• Hard painful external lump that cannot be pushed back in."
+                    )
+                elif is_acidity_query:
+                    response_body = (
+                        f"### 💊 CHINTU // Clinical Pharmacology Protocol: Acidity & Gastric Relief\n\n"
+                        f"**Patient:** {patient_name} | **Assessment:** Hyperacidity, GERD & Gastritis\n\n"
+                        f"#### 1. Recommended Proton Pump Inhibitor (Acid Suppression):\n"
+                        f"• **Generic Formulation:** **Pantoprazole 40 mg** or **Rabeprazole 20 mg**\n"
+                        f"• **Top Reputable Brands in India:**\n"
+                        f"  - **Pan-40** (Alkem) — ₹115.00 per strip of 15 tablets (≈₹7.66 / tab)\n"
+                        f"  - **Pantocid 40** (Sun Pharma) — ₹125.00 per strip of 15 tablets\n"
+                        f"  - **Razo 20** (Dr. Reddy's) — ₹130.00 per strip of 15 tablets\n"
+                        f"• **Dosage & Timing:** Take **1 tablet once daily in the morning on an empty stomach**, strictly 30 minutes before breakfast.\n\n"
+                        f"#### 2. Immediate Breakthrough Antacid Liquid:\n"
+                        f"• **Mucaine Gel / Digene Syrup / Gelusil** — ₹120.00 – ₹150.00 per 200ml bottle\n"
+                        f"• **Dosage:** 10 ml taken 15 minutes after meals or whenever heartburn occurs for instant mucosal coating and cooling relief.\n\n"
+                        f"#### 3. Lifestyle & Diet Guidance:\n"
+                        f"• Avoid deep-fried, oily, excessively spicy foods, tea, and black coffee.\n"
+                        f"• Maintain at least a 2-hour gap between dinner and sleeping; elevate head of bed by 6 inches."
+                    )
+                elif is_cold_cough_query:
+                    response_body = (
+                        f"### 💊 CHINTU // Clinical Pharmacology Protocol: Cold & Cough Relief\n\n"
+                        f"**Patient:** {patient_name} | **Assessment:** Upper Respiratory Symptoms & Allergy\n\n"
+                        f"#### 1. Recommended Antihistamine (Runny Nose & Sneezing):\n"
+                        f"• **Generic Formulation:** **Cetirizine 10 mg** or **Levocetirizine 5 mg**\n"
+                        f"• **Top Reputable Brands:** **Cetzine** (Dr. Reddy's), **Alerid** (Cipla), **Levocet** (Hetero) — ₹25.00 – ₹38.00 per strip of 10 tablets\n"
+                        f"• **Dosage & Timing:** Take **1 tablet at night before bedtime** (may cause mild drowsiness).\n\n"
+                        f"#### 2. Supportive Care:\n"
+                        f"• Steam inhalation with a Karvol Plus capsule twice daily.\n"
+                        f"• Warm saline gargles 3 times daily for sore throat."
+                    )
+                elif is_fever_query:
+                    response_body = (
+                        f"### 💊 CHINTU // Clinical Pharmacology Protocol: Fever Relief & Medication Guide\n\n"
                         f"**Patient:** {patient_name} | **Assessment:** Acute Fever / Pyrexia Management\n\n"
                         f"#### 1. Recommended First-Line Medication:\n"
                         f"• **Generic Formulation:** **Paracetamol IP (Acetaminophen)** — Available in 500 mg and 650 mg.\n"
