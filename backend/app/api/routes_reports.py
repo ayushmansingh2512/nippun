@@ -164,3 +164,26 @@ async def get_latest_report(
         "parsed_data": fallback_data,
         "uploaded_at": "2026-10-24T10:00:00Z",
     }
+
+@router.get("/debug-db")
+async def debug_db(db: AsyncSession = Depends(get_db)):
+    try:
+        stmt = select(MedicalReport).order_by(MedicalReport.uploaded_at.desc())
+        result = await asyncio.wait_for(db.execute(stmt), timeout=8.0)
+        reports = result.scalars().all()
+        return {
+            "count": len(reports),
+            "reports": [
+                {
+                    "id": str(r.id),
+                    "username": r.username,
+                    "file_name": r.file_name,
+                    "raw_text_preview": (r.raw_text or "")[:120],
+                    "extracted_biomarkers": r.extracted_biomarkers,
+                    "uploaded_at": str(r.uploaded_at),
+                }
+                for r in reports
+            ]
+        }
+    except Exception as e:
+        return {"error": str(e)}
