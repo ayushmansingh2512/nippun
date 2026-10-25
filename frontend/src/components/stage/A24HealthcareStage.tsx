@@ -67,7 +67,7 @@ export const AGENTS: HealthcareAgent[] = [
     specialty: 'Specialist Discovery & GCal Booking',
     avatarType: 'ghost',
     color: '#0284c7',
-    model: 'Clinical Discovery & Dispatch',
+    model: 'Gemini 2.5 Flash',
     capabilities: ['Specialist Discovery', 'Automated Clinic Consultation', 'Calendar Reservation'],
     bowTie: true,
     glasses: 'round',
