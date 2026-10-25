@@ -1,0 +1,7 @@
+name = "a24-gemini-key-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+INTERNAL_PROXY_SECRET = "a24-healthcare-internal-key-secret-2026"
+GEMINI_API_KEYS = "AIzaSyDWqmfQ-4gyKbMqmy4fHgc0GbPiw0Fo-hw,AIzaSyCud0VqXYDM7csM5zwMLdUR_L2pPW3YDvI,AIzaSyDaCT98SpZyphGpqeuHWgnnQtmbI_t4o08,AIzaSyAJuM_1yhBk_8pDEhMA7oU0YHSZrB0w3hc,AIzaSyCPfFmF5fsf6jBAnawwDm6ei9MNXxb5IF4,AIzaSyCQ3X8882E23R4Ego4iwNfaGS4XaU2Joyk,AIzaSyBIt7I-sq_dS712mEobQUVKajSUTWbTYkk,AIzaSyCuQnger_p-pf1GKmutZg00WAXsJFB48Nw,AIzaSyB-v3YzAaQJP8eLQQUiXj8PA34aPGOLapI,AIzaSyConioF2Di-htOuumFyo5nS-VGCbRPUFxE,AIzaSyCMiZlaUvxaffvM1wBLbM5jF-jFZkaW-AY,AIzaSyDEq5y0VoY6qwtXMhQO_ROir3hMWImfmV8,AIzaSyDHxanabbD7-OJG1gZz9KuOU4vzeJfgp6M"

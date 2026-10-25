@@ -1,0 +1,19 @@
+{
+  "name": "a24-gemini-key-proxy",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker key rotation proxy for Google Gemini API in A24 Healthcare platform",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "wrangler deploy --dry-run"
+  },
+  "keywords": ["cloudflare", "worker", "gemini", "key-rotator"],
+  "author": "Ayushman Singh",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.30.0"
+  }
+}
