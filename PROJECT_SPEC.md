@@ -1,21 +1,15 @@
-# A24 Multi-Agent Healthcare Platform — Project Specification
+# A24 Editorial Multi-Agent Healthcare Platform — Master Specification
 
-## 1. Project Overview & Aesthetic Direction
-This project implements an autonomous healthcare platform crafted in the **A24 film aesthetic** (monochrome minimalism, Swiss typography, film-grain texture, high-contrast metadata layouts, tactile vinyl bot avatars).
+## 1. Architecture & Data Flow
+1. **Frontend (`frontend/`)**: Vite + React + TypeScript + Zustand (`useHealthcareStore.ts`). Renders an A24-styled viewport (`#f2f2f2` background, `PPEiko` serif headings, `PPNeueMontreal` body, `PPMuseum` eyebrows, and `/textures/noise.avif` film grain overlay).
+2. **Stage (`DiagonalAvatarArc.tsx`)**: Replaces the A24 3D CD carousel with 4 interactive 2D Canvas plush avatars (`BotAvatarCanvas.tsx`). Clicking any avatar slides the stage left (`46vw`) and opens `AgentWorkspaceDrawer.tsx` (`54vw`) from the right.
+3. **Backend (`backend/`)**: FastAPI + Async SQLAlchemy + Neon PostgreSQL (`asyncpg`). Exposes REST endpoints (`routes.py`) and Server-Sent Events (`sse_stream.py`) to stream multi-agent thoughts, avatar state transitions (`default` | `working` | `sleeping` | `poke`), and tool executions in real time.
+4. **LLM Key Router (`cloudflare-proxy/`)**: Cloudflare Worker (`src/index.ts`) holding a pool of Gemini API keys (`GEMINI_API_KEYS`). Routes requests round-robin with automatic failover on HTTP `429` or `5xx`.
 
-### Key Architectural Pillars
-1. **Cloudflare Gemini Key Rotator Proxy (`cloudflare-proxy/`)**:
-   - Manages a pool of Gemini API keys configured in Cloudflare Secrets.
-   - Rotates keys round-robin with automatic failover upon HTTP 429 (Rate Limit) or 503 errors to guarantee zero downtime during live multi-agent demonstrations.
-2. **FastAPI Multi-Agent Backend (`backend/`)**:
-   - Built with async SQLAlchemy 2.0 and `asyncpg` supporting **Neon Serverless PostgreSQL**.
-   - Implements real-time Server-Sent Events (SSE) streaming (`POST /api/v1/chat/stream`) that synchronizes frontend avatar physical states (`working`, `poked`, `default`).
-   - Four specialized autonomous agents:
-     - **CLOVER // INGEST**: Medical Report & Lab OCR parser extracting biomarker metrics, ranges, and diagnostic flags.
-     - **FLOWER // RX GUIDE**: Pharmacology advisor formulating supplement protocols, timing, contraindication checks, and questions for physicians.
-     - **SQUARE // KINESIS**: Kinesiology & mobility coach formulating 7-day training splits targeted at glycemic clearance and mitochondrial density.
-     - **GHOST // DISPATCH**: Autonomous concierge actuator discovering nearby specialists via OpenStreetMap / Places, dispatching consultation emails via Gmail API, and locking events in Google Calendar.
-3. **A24 Editorial Frontend (`frontend/`)**:
-   - Built with Vite, React 18, TypeScript, and TailwindCSS.
-   - Houses the procedural **`BotAvatar` 2D Canvas Engine** rendering interactive physics, vinyl plastic sheen, blinking expressions, and orbital activity states.
-   - Features the diagonal 3D stage arc and the right-hand slide-over **Agent Workspace Drawer** with 4 interactive tabs.
+## 2. The Four Healthcare Agents
+| Agent File | BotAvatar Type | Color | Responsibilities |
+| :--- | :--- | :--- | :--- |
+| `report_parser_agent.py` | `clover` (Eyes) | `#2563eb` | Parses uploaded PDF/Image lab reports (`ocr_pdf_parser.py`), extracts biomarkers, flags abnormal values, and saves to Neon DB (`report.py`). |
+| `clinical_advisor_agent.py` | `flower` (Mouth) | `#16a34a` | Reads extracted biomarkers from Neon DB and generates tailored **Medication/Supplement Guidance** + **Exercise/Mobility Protocols** with clinical safety disclaimers. |
+| `doctor_discovery_agent.py` | `square` (Eyes) | `#db2777` | Queries nearby specialists (`doctor_discovery.py` via Overpass/Google Places API) matching the patient's flagged conditions and location. |
+| `scheduler_actuator_agent.py` | `ghost` (Eyes) | `#e2e8f0` | Dispatches appointment request emails via Gmail (`gmail_actuator.py`) and locks confirmed slots onto the user's Google Calendar (`gcal_actuator.py`), updating `appointment.py`. |
